@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NTMA Barcode Scanner</title>
+
+  <script src="https://unpkg.com/@zxing/browser@latest"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f2f4f7;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .container {
+      max-width: 500px;
+      margin: auto;
+      background: white;
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 3px 12px rgba(0,0,0,0.15);
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 5px;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 20px;
+    }
+
+    button {
+      width: 100%;
+      padding: 15px;
+      margin: 8px 0;
+      border: none;
+      border-radius: 10px;
+      font-size: 17px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    #startButton {
+      background: #111;
+      color: white;
+    }
+
+    #stopButton {
+      background: #777;
+      color: white;
+    }
+
+    video {
+      width: 100%;
+      max-height: 350px;
+      border-radius: 12px;
+      background: black;
+      margin-top: 10px;
+    }
+
+    .manual {
+      margin-top: 25px;
+      border-top: 1px solid #ddd;
+      padding-top: 20px;
+    }
+
+    input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 14px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+
+    #searchButton {
+      background: #0066cc;
+      color: white;
+    }
+
+    .note {
+      font-size: 13px;
+      color: #777;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <h1>NTMA CELLPHONE SCANNER</h1>
+  <div class="subtitle">Cellphone Accountability System</div>
+
+  <button id="startButton" onclick="startScanner()">
+    📷 SCAN BARCODE
+  </button>
+
+  <button id="stopButton" onclick="stopScanner()">
+    ✖ STOP SCANNER
+  </button>
+
+  <video id="video" autoplay muted playsinline></video>
+
+  <div class="manual">
+
+    <h3>Manual Phone ID Entry</h3>
+
+    <input
+      type="text"
+      id="phoneId"
+      placeholder="Enter Phone ID (e.g. NTMA-P28-0001)"
+    >
+
+    <button id="searchButton" onclick="searchPhone()">
+      🔎 SEARCH PHONE
+    </button>
+
+  </div>
+
+  <div class="note">
+    Scan the Code 128 barcode attached to the registered cellphone.
+  </div>
+
+</div>
+
+<script>
+
+  const APP_URL =
+    "https://script.google.com/macros/s/AKfycbwKJ8-2xbqwWgw8G8wCXrKMJSKC7MtMLrlkDmCyIOconnMrus_9nROfgZVRMZnwJIMTnA/exec";
+
+  let codeReader = null;
+  let scannerControls = null;
+
+  async function startScanner() {
+
+    try {
+
+      if (!codeReader) {
+        codeReader =
+          new ZXingBrowser.BrowserMultiFormatReader();
+      }
+
+      scannerControls =
+        await codeReader.decodeFromConstraints(
+          {
+            video: {
+              facingMode: { ideal: "environment" }
+            }
+          },
+          "video",
+          (result, error) => {
+
+            if (result) {
+
+              const phoneId =
+                result.getText().trim();
+
+              document.getElementById("phoneId").value =
+                phoneId;
+
+              stopScanner();
+
+              openSystem(phoneId);
+            }
+
+          }
+        );
+
+    } catch (error) {
+
+      alert(
+        "Unable to access the camera.\n\n" +
+        "Please make sure camera permission is allowed."
+      );
+
+      console.error(error);
+    }
+  }
+
+
+  function stopScanner() {
+
+    if (scannerControls) {
+
+      scannerControls.stop();
+      scannerControls = null;
+
+    }
+  }
+
+
+  function searchPhone() {
+
+    const phoneId =
+      document.getElementById("phoneId").value.trim();
+
+    if (!phoneId) {
+
+      alert("Please enter a Phone ID.");
+
+      return;
+    }
+
+    openSystem(phoneId);
+  }
+
+
+  function openSystem(phoneId) {
+
+    const url =
+      APP_URL +
+      "?phoneId=" +
+      encodeURIComponent(phoneId);
+
+    window.location.href = url;
+
+  }
+
+</script>
+
+</body>
+</html>
