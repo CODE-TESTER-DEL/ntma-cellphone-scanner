@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+
   <meta
     name="viewport"
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
@@ -29,7 +30,6 @@
       --text: #16202b;
       --muted: #6d7885;
       --border: #dce2e8;
-      --danger: #b42318;
     }
 
     body {
@@ -40,29 +40,20 @@
         "Segoe UI",
         Arial,
         sans-serif;
-
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
     }
 
-    /* =========================
-       HEADER
-    ========================= */
-
     .header {
-      background:
-        linear-gradient(
-          135deg,
-          var(--navy),
-          var(--navy-2)
-        );
-
+      background: linear-gradient(
+        135deg,
+        var(--navy),
+        var(--navy-2)
+      );
       color: white;
       padding: 20px 18px 22px;
-
-      box-shadow:
-        0 3px 12px rgba(0, 0, 0, 0.14);
+      box-shadow: 0 3px 12px rgba(0, 0, 0, 0.14);
     }
 
     .header-inner {
@@ -80,16 +71,12 @@
     .brand-logo {
       width: 42px;
       height: 42px;
-
       border: 1px solid rgba(255,255,255,0.25);
       border-radius: 10px;
-
       display: flex;
       align-items: center;
       justify-content: center;
-
       font-size: 20px;
-
       background: rgba(255,255,255,0.08);
     }
 
@@ -111,10 +98,6 @@
       text-transform: uppercase;
     }
 
-    /* =========================
-       MAIN
-    ========================= */
-
     .container {
       width: 100%;
       max-width: 850px;
@@ -135,27 +118,17 @@
       margin-bottom: 24px;
     }
 
-    /* =========================
-       CARD
-    ========================= */
-
     .card {
       background: white;
       border-radius: 16px;
-
       border: 1px solid var(--border);
-
-      box-shadow:
-        0 5px 18px rgba(12, 30, 50, 0.06);
-
+      box-shadow: 0 5px 18px rgba(12, 30, 50, 0.06);
       overflow: hidden;
     }
 
     .card-header {
       padding: 18px 20px;
-
       border-bottom: 1px solid var(--border);
-
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -172,14 +145,10 @@
       display: inline-flex;
       align-items: center;
       gap: 7px;
-
       font-size: 11px;
       font-weight: 700;
-
       padding: 6px 10px;
-
       border-radius: 999px;
-
       background: #edf7f0;
       color: #24733e;
     }
@@ -191,77 +160,53 @@
       background: #2e9d55;
     }
 
-    /* =========================
-       CAMERA
-    ========================= */
-
     .scanner-section {
       padding: 20px;
     }
 
     .camera-wrapper {
       position: relative;
-
       width: 100%;
       aspect-ratio: 4 / 3;
-
       background: #020a13;
-
       border-radius: 14px;
-
       overflow: hidden;
-
       border: 1px solid #182b40;
     }
 
     video {
       width: 100%;
       height: 100%;
-
       display: block;
-
       object-fit: cover;
     }
-
-    /* dark overlay around scanning area */
 
     .camera-overlay {
       position: absolute;
       inset: 0;
-
       pointer-events: none;
-
-      background:
-        linear-gradient(
-          rgba(0,0,0,0.38),
-          rgba(0,0,0,0.08) 25%,
-          rgba(0,0,0,0.08) 75%,
-          rgba(0,0,0,0.38)
-        );
+      background: linear-gradient(
+        rgba(0,0,0,0.38),
+        rgba(0,0,0,0.08) 25%,
+        rgba(0,0,0,0.08) 75%,
+        rgba(0,0,0,0.38)
+      );
     }
-
-    /* scanning frame */
 
     .scan-frame {
       position: absolute;
-
       width: 68%;
       height: 38%;
-
       top: 50%;
       left: 50%;
-
       transform: translate(-50%, -50%);
-
       border: 1px solid rgba(255,255,255,0.18);
     }
 
     .corner {
       position: absolute;
-
       width: 27px;
       height: 27px;
-
       border-color: var(--gold-light);
       border-style: solid;
     }
@@ -269,48 +214,35 @@
     .corner.tl {
       top: -2px;
       left: -2px;
-
       border-width: 3px 0 0 3px;
     }
 
     .corner.tr {
       top: -2px;
       right: -2px;
-
       border-width: 3px 3px 0 0;
     }
 
     .corner.bl {
       bottom: -2px;
       left: -2px;
-
       border-width: 0 0 3px 3px;
     }
 
     .corner.br {
       bottom: -2px;
       right: -2px;
-
       border-width: 0 3px 3px 0;
     }
 
-    /* scan line */
-
     .scan-line {
       position: absolute;
-
       left: 4%;
       right: 4%;
-
       height: 2px;
-
       top: 10%;
-
       background: var(--gold-light);
-
-      box-shadow:
-        0 0 8px rgba(240, 201, 106, 0.8);
-
+      box-shadow: 0 0 8px rgba(240, 201, 106, 0.8);
       animation: scanning 2.3s ease-in-out infinite;
     }
 
@@ -333,46 +265,30 @@
 
     .camera-label {
       position: absolute;
-
       bottom: 15px;
       left: 50%;
-
       transform: translateX(-50%);
-
       white-space: nowrap;
-
       background: rgba(0,0,0,0.62);
-
       color: white;
-
       font-size: 11px;
       font-weight: 600;
-
       padding: 7px 11px;
-
       border-radius: 999px;
-
       backdrop-filter: blur(5px);
     }
-
-    /* =========================
-       BUTTONS
-    ========================= */
 
     .button-row {
       display: flex;
       gap: 10px;
-
       margin-top: 15px;
     }
 
     button {
       border: none;
       cursor: pointer;
-
       font-family: inherit;
       font-weight: 700;
-
       transition:
         transform 0.12s ease,
         opacity 0.12s ease,
@@ -385,19 +301,12 @@
 
     .primary-button {
       width: 100%;
-
       min-height: 48px;
-
       border-radius: 10px;
-
       background: var(--navy);
-
       color: white;
-
       font-size: 14px;
-
-      box-shadow:
-        0 4px 10px rgba(7, 26, 51, 0.16);
+      box-shadow: 0 4px 10px rgba(7, 26, 51, 0.16);
     }
 
     .primary-button:hover {
@@ -406,17 +315,11 @@
 
     .secondary-button {
       width: 100%;
-
       min-height: 48px;
-
       border-radius: 10px;
-
       background: white;
-
       border: 1px solid #cbd3dc;
-
       color: var(--navy);
-
       font-size: 14px;
     }
 
@@ -424,16 +327,10 @@
       background: #f7f9fb;
     }
 
-    /* =========================
-       MANUAL SEARCH
-    ========================= */
-
     .divider {
       display: flex;
       align-items: center;
-
       gap: 12px;
-
       margin: 23px 0;
     }
 
@@ -445,30 +342,22 @@
 
     .divider-text {
       color: #89939f;
-
       font-size: 11px;
-
       font-weight: 700;
-
       text-transform: uppercase;
-
       letter-spacing: 0.8px;
     }
 
     .manual-title {
       font-size: 14px;
       font-weight: 750;
-
       color: var(--navy);
-
       margin-bottom: 5px;
     }
 
     .manual-description {
       font-size: 12px;
-
       color: var(--muted);
-
       margin-bottom: 12px;
     }
 
@@ -479,70 +368,41 @@
 
     input {
       flex: 1;
-
       min-width: 0;
-
       height: 47px;
-
       padding: 0 14px;
-
       border: 1px solid #cfd6de;
-
       border-radius: 9px;
-
       background: white;
-
       color: var(--text);
-
       font-family: inherit;
-
       font-size: 14px;
-
       outline: none;
     }
 
     input:focus {
       border-color: var(--blue);
-
-      box-shadow:
-        0 0 0 3px rgba(18, 62, 106, 0.08);
+      box-shadow: 0 0 0 3px rgba(18, 62, 106, 0.08);
     }
 
     .search-button {
       height: 47px;
-
       padding: 0 17px;
-
       border-radius: 9px;
-
       background: var(--blue);
-
       color: white;
-
       font-size: 13px;
-
       white-space: nowrap;
     }
 
-    /* =========================
-       INFO BOX
-    ========================= */
-
     .info-box {
       margin-top: 20px;
-
       padding: 13px 14px;
-
       border-radius: 10px;
-
       background: #f5f8fb;
-
       border: 1px solid #e0e7ee;
-
       color: #596675;
-
       font-size: 12px;
-
       line-height: 1.55;
     }
 
@@ -550,29 +410,17 @@
       color: var(--navy);
     }
 
-    /* =========================
-       FOOTER
-    ========================= */
-
     .footer {
       text-align: center;
-
       margin-top: 22px;
-
       font-size: 11px;
-
       color: #8a949f;
-
       line-height: 1.5;
     }
 
     .footer strong {
       color: #66717d;
     }
-
-    /* =========================
-       MOBILE
-    ========================= */
 
     @media (max-width: 600px) {
 
@@ -626,17 +474,17 @@
       .button-row {
         flex-direction: column;
       }
+
     }
+
   </style>
+
 </head>
 
 <body>
 
-  <!-- =========================
-       HEADER
-  ========================= -->
-
   <header class="header">
+
     <div class="header-inner">
 
       <div class="brand">
@@ -660,12 +508,9 @@
       </div>
 
     </div>
+
   </header>
 
-
-  <!-- =========================
-       MAIN
-  ========================= -->
 
   <main class="container">
 
@@ -678,10 +523,6 @@
     </p>
 
 
-    <!-- =========================
-         SCANNER CARD
-    ========================= -->
-
     <section class="card">
 
       <div class="card-header">
@@ -691,8 +532,11 @@
         </div>
 
         <div class="status">
+
           <span class="status-dot"></span>
+
           Scanner Ready
+
         </div>
 
       </div>
@@ -700,7 +544,6 @@
 
       <div class="scanner-section">
 
-        <!-- CAMERA -->
 
         <div class="camera-wrapper">
 
@@ -731,14 +574,12 @@
         </div>
 
 
-        <!-- BUTTONS -->
-
         <div class="button-row">
 
           <button
             id="startButton"
             class="primary-button"
-            onclick="startScanner()"
+            type="button"
           >
             📷 START SCANNER
           </button>
@@ -746,15 +587,13 @@
           <button
             id="stopButton"
             class="secondary-button"
-            onclick="stopScanner()"
+            type="button"
           >
             ✕ STOP SCANNER
           </button>
 
         </div>
 
-
-        <!-- DIVIDER -->
 
         <div class="divider">
 
@@ -769,8 +608,6 @@
         </div>
 
 
-        <!-- MANUAL SEARCH -->
-
         <div>
 
           <div class="manual-title">
@@ -780,7 +617,6 @@
           <div class="manual-description">
             Enter the Gadget ID if barcode scanning is unavailable.
           </div>
-
 
           <div class="input-row">
 
@@ -793,8 +629,9 @@
             >
 
             <button
+              id="searchButton"
               class="search-button"
-              onclick="manualSearch()"
+              type="button"
             >
               🔎 VERIFY GADGET
             </button>
@@ -804,15 +641,14 @@
         </div>
 
 
-        <!-- INFO -->
-
         <div class="info-box">
 
           <strong>Scanner instructions:</strong>
+
           Allow camera access when prompted, then position the
           Code 128 barcode inside the scanning frame.
-          The system will automatically open the registered gadget record
-          after a successful scan.
+          The system will automatically open the registered gadget
+          record after a successful scan.
 
         </div>
 
@@ -821,11 +657,13 @@
     </section>
 
 
-    <!-- FOOTER -->
-
     <div class="footer">
 
-      <strong>NTMA Gadget Accountability System</strong><br>
+      <strong>
+        NTMA Gadget Accountability System
+      </strong>
+
+      <br>
 
       Authorized personnel only. Gadget records are subject to
       NTMA accountability procedures.
@@ -835,50 +673,65 @@
   </main>
 
 
-  <!-- =========================
-       SCANNER SCRIPT
-  ========================= -->
-
   <script>
 
     /*
-      ============================================
-      NTMA GADGET ACCOUNTABILITY SYSTEM
-      EXTERNAL BARCODE SCANNER
-      ============================================
+     * ================================================
+     * NTMA GADGET ACCOUNTABILITY SYSTEM
+     * ================================================
+     *
+     * Google Apps Script Web App
+     */
 
-      The scanner uses ZXing Browser.
+    const APP_URL =
+      "https://script.google.com/macros/s/AKfycbzHv_0s6Gl4aA9paM1xl8pfRIAHDJQEvp_5UKFbyx-Arqo3AH9VsYqCQ7AOG9cqLwbU3g/exec";
 
-      Barcode result:
-        Gadget ID
-
-      Example:
-        NTMA-P28-0001
-
-      After detection:
-        GitHub Scanner
-              ↓
-        Apps Script System
-              ↓
-        Gadget Record
-    */
-
-
-const APP_URL =
-  "https://script.google.com/macros/s/AKfycbzHv_0s6Gl4aA9paM1xl8pfRIAHDJQEvp_5UKFbyx-Arqo3AH9VsYqCQ7AOG9cqLwbU3g/exec";
 
     let codeReader = null;
+
     let controls = null;
 
     let scannerRunning = false;
+
     let lastScannedCode = null;
 
 
     /*
-      ============================================
-      START SCANNER
-      ============================================
-    */
+     * ================================================
+     * OPEN NTMA SYSTEM
+     * ================================================
+     */
+
+    function openSystem(gadgetId) {
+
+      const cleanId =
+        String(gadgetId).trim();
+
+      if (!cleanId) {
+
+        alert(
+          "Please enter a Gadget ID."
+        );
+
+        return;
+
+      }
+
+      const url =
+        APP_URL +
+        "?phoneId=" +
+        encodeURIComponent(cleanId);
+
+      window.location.href = url;
+
+    }
+
+
+    /*
+     * ================================================
+     * START SCANNER
+     * ================================================
+     */
 
     async function startScanner() {
 
@@ -890,8 +743,11 @@ const APP_URL =
 
         scannerRunning = true;
 
+        lastScannedCode = null;
+
         codeReader =
           new ZXingBrowser.BrowserMultiFormatReader();
+
 
         const video =
           document.getElementById("video");
@@ -899,57 +755,69 @@ const APP_URL =
 
         controls =
           await codeReader.decodeFromVideoDevice(
+
             undefined,
+
             video,
-            (result, error) => {
 
-              if (result) {
+            function(result, error) {
 
-                const phoneId =
-                  result.getText().trim();
-
-                if (!phoneId) {
-                  return;
-                }
+              if (!result) {
+                return;
+              }
 
 
-                /*
-                  Prevent the same barcode from
-                  triggering multiple times.
-                */
-
-                if (
-                  lastScannedCode === phoneId
-                ) {
-                  return;
-                }
-
-                lastScannedCode = phoneId;
+              const gadgetId =
+                result.getText().trim();
 
 
-                /*
-                  Put scanned ID into the
-                  manual input as feedback.
-                */
-
-                document.getElementById(
-                  "phoneId"
-                ).value = phoneId;
+              if (!gadgetId) {
+                return;
+              }
 
 
-                stopScanner();
+              /*
+               * Prevent duplicate scans.
+               */
 
+              if (
+                lastScannedCode === gadgetId
+              ) {
 
-                /*
-                  Open the main NTMA
-                  Gadget Accountability System.
-                */
-
-                openSystem(phoneId);
+                return;
 
               }
 
+
+              lastScannedCode =
+                gadgetId;
+
+
+              /*
+               * Display detected Gadget ID.
+               */
+
+              document.getElementById(
+                "phoneId"
+              ).value =
+                gadgetId;
+
+
+              /*
+               * Stop camera.
+               */
+
+              stopScanner();
+
+
+              /*
+               * Open Apps Script system.
+               */
+
+              openSystem(gadgetId);
+
             }
+
           );
 
 
@@ -973,10 +841,10 @@ const APP_URL =
 
 
     /*
-      ============================================
-      STOP SCANNER
-      ============================================
-    */
+     * ================================================
+     * STOP SCANNER
+     * ================================================
+     */
 
     function stopScanner() {
 
@@ -985,6 +853,7 @@ const APP_URL =
         if (controls) {
 
           controls.stop();
+
           controls = null;
 
         }
@@ -998,12 +867,11 @@ const APP_URL =
       } catch (error) {
 
         console.error(
-          "Stop scanner error:",
+          "Scanner stop error:",
           error
         );
 
       }
-
 
       scannerRunning = false;
 
@@ -1011,39 +879,23 @@ const APP_URL =
 
 
     /*
-      ============================================
-      OPEN MAIN SYSTEM
-      ============================================
-    */
-
-    function openSystem(phoneId) {
-
-      const url =
-        APP_URL +
-        "?phoneId=" +
-        encodeURIComponent(phoneId);
-
-      window.location.href = url;
-
-    }
-
-
-    /*
-      ============================================
-      MANUAL SEARCH
-      ============================================
-    */
+     * ================================================
+     * MANUAL SEARCH
+     * ================================================
+     */
 
     function manualSearch() {
 
       const input =
-        document.getElementById("phoneId");
+        document.getElementById(
+          "phoneId"
+        );
 
-      const phoneId =
+      const gadgetId =
         input.value.trim();
 
 
-      if (!phoneId) {
+      if (!gadgetId) {
 
         alert(
           "Please enter a Gadget ID."
@@ -1056,16 +908,46 @@ const APP_URL =
       }
 
 
-      openSystem(phoneId);
+      openSystem(gadgetId);
 
     }
 
 
     /*
-      ============================================
-      ENTER KEY SUPPORT
-      ============================================
-    */
+     * ================================================
+     * BUTTON EVENTS
+     * ================================================
+     */
+
+    document
+      .getElementById("startButton")
+      .addEventListener(
+        "click",
+        startScanner
+      );
+
+
+    document
+      .getElementById("stopButton")
+      .addEventListener(
+        "click",
+        stopScanner
+      );
+
+
+    document
+      .getElementById("searchButton")
+      .addEventListener(
+        "click",
+        manualSearch
+      );
+
+
+    /*
+     * ================================================
+     * ENTER KEY
+     * ================================================
+     */
 
     document
       .getElementById("phoneId")
@@ -1086,10 +968,10 @@ const APP_URL =
 
 
     /*
-      ============================================
-      RESET LAST SCAN
-      ============================================
-    */
+     * ================================================
+     * RESET STATE
+     * ================================================
+     */
 
     window.addEventListener(
       "pageshow",
