@@ -1,230 +1,1107 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NTMA Barcode Scanner</title>
+  <meta charset="UTF-8">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+  >
+
+  <title>NTMA Gadget Scanner</title>
 
   <script src="https://unpkg.com/@zxing/browser@latest"></script>
 
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f2f4f7;
+    * {
+      box-sizing: border-box;
       margin: 0;
-      padding: 20px;
-      text-align: center;
+      padding: 0;
     }
+
+    :root {
+      --navy: #071a33;
+      --navy-2: #0b2748;
+      --blue: #123e6a;
+      --gold: #d6a84f;
+      --gold-light: #f0c96a;
+      --white: #ffffff;
+      --bg: #f3f5f8;
+      --text: #16202b;
+      --muted: #6d7885;
+      --border: #dce2e8;
+      --danger: #b42318;
+    }
+
+    body {
+      font-family:
+        Inter,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Arial,
+        sans-serif;
+
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* =========================
+       HEADER
+    ========================= */
+
+    .header {
+      background:
+        linear-gradient(
+          135deg,
+          var(--navy),
+          var(--navy-2)
+        );
+
+      color: white;
+      padding: 20px 18px 22px;
+
+      box-shadow:
+        0 3px 12px rgba(0, 0, 0, 0.14);
+    }
+
+    .header-inner {
+      width: 100%;
+      max-width: 850px;
+      margin: auto;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      width: 42px;
+      height: 42px;
+
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 10px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      font-size: 20px;
+
+      background: rgba(255,255,255,0.08);
+    }
+
+    .brand-text {
+      line-height: 1.1;
+    }
+
+    .brand-main {
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+
+    .brand-sub {
+      font-size: 11px;
+      color: #b9c6d5;
+      margin-top: 4px;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+    }
+
+    /* =========================
+       MAIN
+    ========================= */
 
     .container {
-      max-width: 500px;
-      margin: auto;
-      background: white;
-      padding: 25px;
-      border-radius: 15px;
-      box-shadow: 0 3px 12px rgba(0,0,0,0.15);
-    }
-
-    h1 {
-      font-size: 24px;
-      margin-bottom: 5px;
-    }
-
-    .subtitle {
-      color: #666;
-      margin-bottom: 20px;
-    }
-
-    button {
       width: 100%;
-      padding: 15px;
-      margin: 8px 0;
-      border: none;
-      border-radius: 10px;
-      font-size: 17px;
-      font-weight: bold;
-      cursor: pointer;
+      max-width: 850px;
+      margin: 0 auto;
+      padding: 28px 16px 45px;
     }
 
-    #startButton {
-      background: #111;
-      color: white;
+    .page-title {
+      font-size: 27px;
+      font-weight: 800;
+      color: var(--navy);
+      margin-bottom: 6px;
     }
 
-    #stopButton {
-      background: #777;
-      color: white;
+    .page-subtitle {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+
+    /* =========================
+       CARD
+    ========================= */
+
+    .card {
+      background: white;
+      border-radius: 16px;
+
+      border: 1px solid var(--border);
+
+      box-shadow:
+        0 5px 18px rgba(12, 30, 50, 0.06);
+
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 18px 20px;
+
+      border-bottom: 1px solid var(--border);
+
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 750;
+      color: var(--navy);
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+
+      font-size: 11px;
+      font-weight: 700;
+
+      padding: 6px 10px;
+
+      border-radius: 999px;
+
+      background: #edf7f0;
+      color: #24733e;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #2e9d55;
+    }
+
+    /* =========================
+       CAMERA
+    ========================= */
+
+    .scanner-section {
+      padding: 20px;
+    }
+
+    .camera-wrapper {
+      position: relative;
+
+      width: 100%;
+      aspect-ratio: 4 / 3;
+
+      background: #020a13;
+
+      border-radius: 14px;
+
+      overflow: hidden;
+
+      border: 1px solid #182b40;
     }
 
     video {
       width: 100%;
-      max-height: 350px;
-      border-radius: 12px;
-      background: black;
-      margin-top: 10px;
+      height: 100%;
+
+      display: block;
+
+      object-fit: cover;
     }
 
-    .manual {
-      margin-top: 25px;
-      border-top: 1px solid #ddd;
-      padding-top: 20px;
+    /* dark overlay around scanning area */
+
+    .camera-overlay {
+      position: absolute;
+      inset: 0;
+
+      pointer-events: none;
+
+      background:
+        linear-gradient(
+          rgba(0,0,0,0.38),
+          rgba(0,0,0,0.08) 25%,
+          rgba(0,0,0,0.08) 75%,
+          rgba(0,0,0,0.38)
+        );
+    }
+
+    /* scanning frame */
+
+    .scan-frame {
+      position: absolute;
+
+      width: 68%;
+      height: 38%;
+
+      top: 50%;
+      left: 50%;
+
+      transform: translate(-50%, -50%);
+
+      border: 1px solid rgba(255,255,255,0.18);
+    }
+
+    .corner {
+      position: absolute;
+
+      width: 27px;
+      height: 27px;
+
+      border-color: var(--gold-light);
+      border-style: solid;
+    }
+
+    .corner.tl {
+      top: -2px;
+      left: -2px;
+
+      border-width: 3px 0 0 3px;
+    }
+
+    .corner.tr {
+      top: -2px;
+      right: -2px;
+
+      border-width: 3px 3px 0 0;
+    }
+
+    .corner.bl {
+      bottom: -2px;
+      left: -2px;
+
+      border-width: 0 0 3px 3px;
+    }
+
+    .corner.br {
+      bottom: -2px;
+      right: -2px;
+
+      border-width: 0 3px 3px 0;
+    }
+
+    /* scan line */
+
+    .scan-line {
+      position: absolute;
+
+      left: 4%;
+      right: 4%;
+
+      height: 2px;
+
+      top: 10%;
+
+      background: var(--gold-light);
+
+      box-shadow:
+        0 0 8px rgba(240, 201, 106, 0.8);
+
+      animation: scanning 2.3s ease-in-out infinite;
+    }
+
+    @keyframes scanning {
+      0% {
+        top: 10%;
+        opacity: 0.5;
+      }
+
+      50% {
+        top: 90%;
+        opacity: 1;
+      }
+
+      100% {
+        top: 10%;
+        opacity: 0.5;
+      }
+    }
+
+    .camera-label {
+      position: absolute;
+
+      bottom: 15px;
+      left: 50%;
+
+      transform: translateX(-50%);
+
+      white-space: nowrap;
+
+      background: rgba(0,0,0,0.62);
+
+      color: white;
+
+      font-size: 11px;
+      font-weight: 600;
+
+      padding: 7px 11px;
+
+      border-radius: 999px;
+
+      backdrop-filter: blur(5px);
+    }
+
+    /* =========================
+       BUTTONS
+    ========================= */
+
+    .button-row {
+      display: flex;
+      gap: 10px;
+
+      margin-top: 15px;
+    }
+
+    button {
+      border: none;
+      cursor: pointer;
+
+      font-family: inherit;
+      font-weight: 700;
+
+      transition:
+        transform 0.12s ease,
+        opacity 0.12s ease,
+        box-shadow 0.12s ease;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    .primary-button {
+      width: 100%;
+
+      min-height: 48px;
+
+      border-radius: 10px;
+
+      background: var(--navy);
+
+      color: white;
+
+      font-size: 14px;
+
+      box-shadow:
+        0 4px 10px rgba(7, 26, 51, 0.16);
+    }
+
+    .primary-button:hover {
+      background: #0b2748;
+    }
+
+    .secondary-button {
+      width: 100%;
+
+      min-height: 48px;
+
+      border-radius: 10px;
+
+      background: white;
+
+      border: 1px solid #cbd3dc;
+
+      color: var(--navy);
+
+      font-size: 14px;
+    }
+
+    .secondary-button:hover {
+      background: #f7f9fb;
+    }
+
+    /* =========================
+       MANUAL SEARCH
+    ========================= */
+
+    .divider {
+      display: flex;
+      align-items: center;
+
+      gap: 12px;
+
+      margin: 23px 0;
+    }
+
+    .divider-line {
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .divider-text {
+      color: #89939f;
+
+      font-size: 11px;
+
+      font-weight: 700;
+
+      text-transform: uppercase;
+
+      letter-spacing: 0.8px;
+    }
+
+    .manual-title {
+      font-size: 14px;
+      font-weight: 750;
+
+      color: var(--navy);
+
+      margin-bottom: 5px;
+    }
+
+    .manual-description {
+      font-size: 12px;
+
+      color: var(--muted);
+
+      margin-bottom: 12px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 9px;
     }
 
     input {
-      width: 100%;
-      box-sizing: border-box;
-      padding: 14px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      font-size: 16px;
-      margin-bottom: 10px;
+      flex: 1;
+
+      min-width: 0;
+
+      height: 47px;
+
+      padding: 0 14px;
+
+      border: 1px solid #cfd6de;
+
+      border-radius: 9px;
+
+      background: white;
+
+      color: var(--text);
+
+      font-family: inherit;
+
+      font-size: 14px;
+
+      outline: none;
     }
 
-    #searchButton {
-      background: #0066cc;
+    input:focus {
+      border-color: var(--blue);
+
+      box-shadow:
+        0 0 0 3px rgba(18, 62, 106, 0.08);
+    }
+
+    .search-button {
+      height: 47px;
+
+      padding: 0 17px;
+
+      border-radius: 9px;
+
+      background: var(--blue);
+
       color: white;
+
+      font-size: 13px;
+
+      white-space: nowrap;
     }
 
-    .note {
-      font-size: 13px;
-      color: #777;
-      margin-top: 15px;
+    /* =========================
+       INFO BOX
+    ========================= */
+
+    .info-box {
+      margin-top: 20px;
+
+      padding: 13px 14px;
+
+      border-radius: 10px;
+
+      background: #f5f8fb;
+
+      border: 1px solid #e0e7ee;
+
+      color: #596675;
+
+      font-size: 12px;
+
+      line-height: 1.55;
+    }
+
+    .info-box strong {
+      color: var(--navy);
+    }
+
+    /* =========================
+       FOOTER
+    ========================= */
+
+    .footer {
+      text-align: center;
+
+      margin-top: 22px;
+
+      font-size: 11px;
+
+      color: #8a949f;
+
+      line-height: 1.5;
+    }
+
+    .footer strong {
+      color: #66717d;
+    }
+
+    /* =========================
+       MOBILE
+    ========================= */
+
+    @media (max-width: 600px) {
+
+      .header {
+        padding: 17px 15px 19px;
+      }
+
+      .brand-logo {
+        width: 38px;
+        height: 38px;
+        font-size: 18px;
+      }
+
+      .brand-main {
+        font-size: 14px;
+      }
+
+      .container {
+        padding: 22px 13px 35px;
+      }
+
+      .page-title {
+        font-size: 24px;
+      }
+
+      .page-subtitle {
+        font-size: 13px;
+      }
+
+      .scanner-section {
+        padding: 15px;
+      }
+
+      .camera-wrapper {
+        aspect-ratio: 3 / 4;
+      }
+
+      .scan-frame {
+        width: 78%;
+        height: 30%;
+      }
+
+      .input-row {
+        flex-direction: column;
+      }
+
+      .search-button {
+        width: 100%;
+      }
+
+      .button-row {
+        flex-direction: column;
+      }
     }
   </style>
 </head>
 
 <body>
 
-<div class="container">
+  <!-- =========================
+       HEADER
+  ========================= -->
 
-  <h1>NTMA CELLPHONE SCANNER</h1>
-  <div class="subtitle">Cellphone Accountability System</div>
+  <header class="header">
+    <div class="header-inner">
 
-  <button id="startButton" onclick="startScanner()">
-    📷 SCAN BARCODE
-  </button>
+      <div class="brand">
 
-  <button id="stopButton" onclick="stopScanner()">
-    ✖ STOP SCANNER
-  </button>
+        <div class="brand-logo">
+          📱
+        </div>
 
-  <video id="video" autoplay muted playsinline></video>
+        <div class="brand-text">
 
-  <div class="manual">
+          <div class="brand-main">
+            NTMA GADGET ACCOUNTABILITY SYSTEM
+          </div>
 
-    <h3>Manual Phone ID Entry</h3>
+          <div class="brand-sub">
+            Gadget Verification Scanner
+          </div>
 
-    <input
-      type="text"
-      id="phoneId"
-      placeholder="Enter Phone ID (e.g. NTMA-P28-0001)"
-    >
+        </div>
 
-    <button id="searchButton" onclick="searchPhone()">
-      🔎 SEARCH PHONE
-    </button>
+      </div>
 
-  </div>
+    </div>
+  </header>
 
-  <div class="note">
-    Scan the Code 128 barcode attached to the registered cellphone.
-  </div>
 
-</div>
+  <!-- =========================
+       MAIN
+  ========================= -->
 
-<script>
+  <main class="container">
 
-  const APP_URL =
-  "https://script.google.com/macros/s/AKfycbzHv_0s6Gl4aA9paM1xl8pfRIAHDJQEvp_5UKFbyx-Arqo3AH9VsYqCQ7AOG9cqLwbU3g/exec";
+    <h1 class="page-title">
+      Scan Gadget
+    </h1>
 
-  let codeReader = null;
-  let scannerControls = null;
+    <p class="page-subtitle">
+      Position the barcode inside the frame to identify the registered gadget.
+    </p>
 
-  async function startScanner() {
 
-    try {
+    <!-- =========================
+         SCANNER CARD
+    ========================= -->
 
-      if (!codeReader) {
-        codeReader =
-          new ZXingBrowser.BrowserMultiFormatReader();
+    <section class="card">
+
+      <div class="card-header">
+
+        <div class="card-title">
+          Barcode Scanner
+        </div>
+
+        <div class="status">
+          <span class="status-dot"></span>
+          Scanner Ready
+        </div>
+
+      </div>
+
+
+      <div class="scanner-section">
+
+        <!-- CAMERA -->
+
+        <div class="camera-wrapper">
+
+          <video
+            id="video"
+            autoplay
+            muted
+            playsinline
+          ></video>
+
+          <div class="camera-overlay"></div>
+
+          <div class="scan-frame">
+
+            <div class="corner tl"></div>
+            <div class="corner tr"></div>
+            <div class="corner bl"></div>
+            <div class="corner br"></div>
+
+            <div class="scan-line"></div>
+
+          </div>
+
+          <div class="camera-label">
+            Align barcode within the frame
+          </div>
+
+        </div>
+
+
+        <!-- BUTTONS -->
+
+        <div class="button-row">
+
+          <button
+            id="startButton"
+            class="primary-button"
+            onclick="startScanner()"
+          >
+            📷 START SCANNER
+          </button>
+
+          <button
+            id="stopButton"
+            class="secondary-button"
+            onclick="stopScanner()"
+          >
+            ✕ STOP SCANNER
+          </button>
+
+        </div>
+
+
+        <!-- DIVIDER -->
+
+        <div class="divider">
+
+          <div class="divider-line"></div>
+
+          <div class="divider-text">
+            OR
+          </div>
+
+          <div class="divider-line"></div>
+
+        </div>
+
+
+        <!-- MANUAL SEARCH -->
+
+        <div>
+
+          <div class="manual-title">
+            Manual Gadget ID Entry
+          </div>
+
+          <div class="manual-description">
+            Enter the Gadget ID if barcode scanning is unavailable.
+          </div>
+
+
+          <div class="input-row">
+
+            <input
+              id="phoneId"
+              type="text"
+              placeholder="Enter Gadget ID (e.g. NTMA-P28-0001)"
+              autocomplete="off"
+              autocapitalize="characters"
+            >
+
+            <button
+              class="search-button"
+              onclick="manualSearch()"
+            >
+              🔎 VERIFY GADGET
+            </button>
+
+          </div>
+
+        </div>
+
+
+        <!-- INFO -->
+
+        <div class="info-box">
+
+          <strong>Scanner instructions:</strong>
+          Allow camera access when prompted, then position the
+          Code 128 barcode inside the scanning frame.
+          The system will automatically open the registered gadget record
+          after a successful scan.
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- FOOTER -->
+
+    <div class="footer">
+
+      <strong>NTMA Gadget Accountability System</strong><br>
+
+      Authorized personnel only. Gadget records are subject to
+      NTMA accountability procedures.
+
+    </div>
+
+  </main>
+
+
+  <!-- =========================
+       SCANNER SCRIPT
+  ========================= -->
+
+  <script>
+
+    /*
+      ============================================
+      NTMA GADGET ACCOUNTABILITY SYSTEM
+      EXTERNAL BARCODE SCANNER
+      ============================================
+
+      The scanner uses ZXing Browser.
+
+      Barcode result:
+        Gadget ID
+
+      Example:
+        NTMA-P28-0001
+
+      After detection:
+        GitHub Scanner
+              ↓
+        Apps Script System
+              ↓
+        Gadget Record
+    */
+
+
+    const APP_URL =
+      "https://script.google.com/macros/s/AKfycbzHv_0s6Gl4a9paM1xl8pfRIAHDJQEvp_5UKFbyx-Arqo3AH9VsYqCQ7AOG9cqLwbU3g/exec";
+
+
+    let codeReader = null;
+    let controls = null;
+
+    let scannerRunning = false;
+    let lastScannedCode = null;
+
+
+    /*
+      ============================================
+      START SCANNER
+      ============================================
+    */
+
+    async function startScanner() {
+
+      if (scannerRunning) {
+        return;
       }
 
-      scannerControls =
-        await codeReader.decodeFromConstraints(
-          {
-            video: {
-              facingMode: { ideal: "environment" }
+      try {
+
+        scannerRunning = true;
+
+        codeReader =
+          new ZXingBrowser.BrowserMultiFormatReader();
+
+        const video =
+          document.getElementById("video");
+
+
+        controls =
+          await codeReader.decodeFromVideoDevice(
+            undefined,
+            video,
+            (result, error) => {
+
+              if (result) {
+
+                const phoneId =
+                  result.getText().trim();
+
+                if (!phoneId) {
+                  return;
+                }
+
+
+                /*
+                  Prevent the same barcode from
+                  triggering multiple times.
+                */
+
+                if (
+                  lastScannedCode === phoneId
+                ) {
+                  return;
+                }
+
+                lastScannedCode = phoneId;
+
+
+                /*
+                  Put scanned ID into the
+                  manual input as feedback.
+                */
+
+                document.getElementById(
+                  "phoneId"
+                ).value = phoneId;
+
+
+                stopScanner();
+
+
+                /*
+                  Open the main NTMA
+                  Gadget Accountability System.
+                */
+
+                openSystem(phoneId);
+
+              }
+
             }
-          },
-          "video",
-          (result, error) => {
+          );
 
-            if (result) {
 
-              const phoneId =
-                result.getText().trim();
+      } catch (error) {
 
-              document.getElementById("phoneId").value =
-                phoneId;
-
-              stopScanner();
-
-              openSystem(phoneId);
-            }
-
-          }
+        console.error(
+          "Scanner error:",
+          error
         );
 
-    } catch (error) {
+        scannerRunning = false;
 
-      alert(
-        "Unable to access the camera.\n\n" +
-        "Please make sure camera permission is allowed."
+        alert(
+          "Unable to start the camera scanner.\n\n" +
+          "Please allow camera access and try again."
+        );
+
+      }
+
+    }
+
+
+    /*
+      ============================================
+      STOP SCANNER
+      ============================================
+    */
+
+    function stopScanner() {
+
+      try {
+
+        if (controls) {
+
+          controls.stop();
+          controls = null;
+
+        }
+
+        if (codeReader) {
+
+          codeReader.reset();
+
+        }
+
+      } catch (error) {
+
+        console.error(
+          "Stop scanner error:",
+          error
+        );
+
+      }
+
+
+      scannerRunning = false;
+
+    }
+
+
+    /*
+      ============================================
+      OPEN MAIN SYSTEM
+      ============================================
+    */
+
+    function openSystem(phoneId) {
+
+      const url =
+        APP_URL +
+        "?phoneId=" +
+        encodeURIComponent(phoneId);
+
+      window.location.href = url;
+
+    }
+
+
+    /*
+      ============================================
+      MANUAL SEARCH
+      ============================================
+    */
+
+    function manualSearch() {
+
+      const input =
+        document.getElementById("phoneId");
+
+      const phoneId =
+        input.value.trim();
+
+
+      if (!phoneId) {
+
+        alert(
+          "Please enter a Gadget ID."
+        );
+
+        input.focus();
+
+        return;
+
+      }
+
+
+      openSystem(phoneId);
+
+    }
+
+
+    /*
+      ============================================
+      ENTER KEY SUPPORT
+      ============================================
+    */
+
+    document
+      .getElementById("phoneId")
+      .addEventListener(
+        "keydown",
+        function(event) {
+
+          if (
+            event.key === "Enter"
+          ) {
+
+            manualSearch();
+
+          }
+
+        }
       );
 
-      console.error(error);
-    }
-  }
 
+    /*
+      ============================================
+      RESET LAST SCAN
+      ============================================
+    */
 
-  function stopScanner() {
+    window.addEventListener(
+      "pageshow",
+      function() {
 
-    if (scannerControls) {
+        lastScannedCode = null;
 
-      scannerControls.stop();
-      scannerControls = null;
+      }
+    );
 
-    }
-  }
-
-
-  function searchPhone() {
-
-    const phoneId =
-      document.getElementById("phoneId").value.trim();
-
-    if (!phoneId) {
-
-      alert("Please enter a Phone ID.");
-
-      return;
-    }
-
-    openSystem(phoneId);
-  }
-
-
-  function openSystem(phoneId) {
-
-    const url =
-      APP_URL +
-      "?phoneId=" +
-      encodeURIComponent(phoneId);
-
-    window.location.href = url;
-
-  }
-
-</script>
+  </script>
 
 </body>
 </html>
