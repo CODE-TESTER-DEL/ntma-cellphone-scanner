@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#071a33">
+  <title>NTMA Barcode Scanner</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#071a33;color:#fff;font-family:Arial,Helvetica,sans-serif;min-height:100vh;padding:20px}.wrap{max-width:620px;margin:auto}.top{display:flex;align-items:center;gap:12px;margin-bottom:18px}.back{border:1px solid #ffffff33;background:#ffffff12;color:#fff;border-radius:9px;padding:10px 12px;font-weight:800}.title{font-weight:800;font-size:17px}.sub{color:#b9c7d7;font-size:12px;margin-top:3px}.camera{background:#000;border-radius:16px;overflow:hidden;border:1px solid #ffffff22;position:relative}.camera video{display:block;width:100%;height:auto;min-height:280px;object-fit:cover;background:#000}.line{position:absolute;left:10%;right:10%;top:50%;height:2px;background:#d4a84f;box-shadow:0 0 0 1px #071a33aa}.status{padding:13px 2px;color:#cbd5e1;font-size:13px;text-align:center;line-height:1.45}.manual{margin-top:14px;display:flex;gap:8px}.manual input{flex:1;min-width:0;border:1px solid #ffffff2d;border-radius:9px;padding:12px;background:#fff;color:#111;font-size:15px}.manual button,.primary{border:0;border-radius:9px;background:#d4a84f;color:#071a33;font-weight:800;padding:12px 15px}.hidden{display:none}.error{color:#ffb4b4}.success{color:#b8f0c9}
+  </style>
+</head>
+<body>
+<main class="wrap">
+  <div class="top">
+    <button class="back" id="back" type="button">← BACK</button>
+    <div><div class="title">NTMA Barcode Scanner</div><div class="sub">Scan the gadget barcode</div></div>
+  </div>
+  <div class="camera"><video id="video" muted playsinline></video><div class="line"></div></div>
+  <div id="status" class="status">Starting camera…</div>
+  <button id="start" class="primary hidden" type="button">START CAMERA</button>
+  <div class="manual">
+    <input id="manual" autocomplete="off" placeholder="Enter Gadget ID manually">
+    <button id="verify" type="button">VERIFY</button>
+  </div>
+</main>
+<script src="https://unpkg.com/@zxing/browser@latest"></script>
+<script>
+const video=document.getElementById('video');
+const statusBox=document.getElementById('status');
+const startBtn=document.getElementById('start');
+const manual=document.getElementById('manual');
+const APP_URL='./';
+let controls=null;
+let reader=null;
+let busy=false;
+
+function status(text,cls){statusBox.textContent=text;statusBox.className='status'+(cls?' '+cls:'');}
+function goBack(){if(controls&&controls.stop)controls.stop();location.href=APP_URL;}
+function finish(id){id=String(id||'').trim();if(!id){status('No Gadget ID detected.','error');return;}busy=true;if(controls&&controls.stop)controls.stop();location.href=APP_URL+'?phoneId='+encodeURIComponent(id);}
+
+async function startCamera(){
+  if(busy)return;
+  try{
+    if(!window.ZXingBrowser)throw new Error('Scanner library did not load.');
+    reader=new ZXingBrowser.BrowserMultiFormatReader();
+    status('Point the camera at the barcode.');
+    controls=await reader.decodeFromConstraints({video:{facingMode:{ideal:'environment'}}},video,(result,error)=>{
+      if(result&&!busy){finish(result.getText());}
+    });
+  }catch(e){
+    console.error(e);
+    status('Camera unavailable. Allow camera access or use manual Gadget ID.','error');
+    startBtn.classList.remove('hidden');
+  }
+}
+
+document.getElementById('back').addEventListener('click',goBack);
+startBtn.addEventListener('click',startCamera);
+document.getElementById('verify').addEventListener('click',()=>finish(manual.value));
+manual.addEventListener('keydown',e=>{if(e.key==='Enter')finish(manual.value);});
+startCamera();
+</script>
+</body>
+</html>
