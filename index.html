@@ -4952,4 +4952,501 @@ function escapePrint(value) {
 
 </body>
 
-</html>
+<!-- NTMA Apps Script Bridge -->
+<script>
+(function () {
+
+  /*
+    NTMA GADGET ACCOUNTABILITY SYSTEM
+    GitHub Pages → Apps Script Bridge
+
+    This allows the existing google.script.run
+    calls in the application to work from GitHub Pages.
+  */
+
+
+  const NTMA_BRIDGE_URL =
+    "https://script.google.com/macros/s/AKfycbzHv_0s6Gl4aA9paM1xl8pfRIAHDJQEvp_5UKFbyx-Arqo3AH9VsYqCQ7AOG9cqLwbU3g/exec?bridge=1";
+
+
+  /*
+    If this page is already running inside
+    Google Apps Script, do not create another bridge.
+  */
+
+  if (
+    typeof google !== "undefined" &&
+    google.script &&
+    google.script.run
+  ) {
+    return;
+  }
+
+
+  let requestCounter = 0;
+
+  const pendingRequests = new Map();
+
+  const queuedRequests = [];
+
+  let bridgeReady = false;
+
+
+  /*
+    Create the hidden Apps Script Bridge iframe.
+  */
+
+  const bridgeFrame = document.createElement("iframe");
+
+  bridgeFrame.src = NTMA_BRIDGE_URL;
+
+  bridgeFrame.style.display = "none";
+
+  bridgeFrame.setAttribute(
+    "aria-hidden",
+    "true"
+  );
+
+  document.body.appendChild(
+    bridgeFrame
+  );
+
+
+  /*
+    Receive messages from Apps Script.
+  */
+
+  window.addEventListener(
+    "message",
+    function (event) {
+
+      const data = event.data;
+
+      if (!data) {
+        return;
+      }
+
+
+      /*
+        Apps Script Bridge is ready.
+      */
+
+      if (
+        data.type ===
+        "ntma-bridge-ready"
+      ) {
+
+        bridgeReady = true;
+
+
+        /*
+          Send any requests that were
+          made before the bridge loaded.
+        */
+
+        while (
+          queuedRequests.length > 0
+        ) {
+
+          const request =
+            queuedRequests.shift();
+
+          sendRequest(request);
+
+        }
+
+        return;
+      }
+
+
+      /*
+        Backend response.
+      */
+
+      if (
+        data.type ===
+        "ntma-api-response"
+      ) {
+
+        const request =
+          pendingRequests.get(
+            data.id
+          );
+
+
+        if (!request) {
+          return;
+        }
+
+
+        pendingRequests.delete(
+          data.id
+        );
+
+
+        /*
+          Successful Apps Script call.
+        */
+
+        if (data.ok) {
+
+          if (
+            typeof request.successHandler ===
+            "function"
+          ) {
+
+            request.successHandler(
+              data.result
+            );
+
+          }
+
+        }
+
+
+        /*
+          Failed Apps Script call.
+        */
+
+        else {
+
+          if (
+            typeof request.failureHandler ===
+            "function"
+          ) {
+
+            request.failureHandler({
+
+              message:
+                data.error ||
+                "Apps Script request failed."
+
+            });
+
+          }
+
+        }
+
+      }
+
+    }
+  );
+
+
+  /*
+    Send request to Apps Script.
+  */
+
+  function sendRequest(
+    request
+  ) {
+
+    pendingRequests.set(
+      request.id,
+      request
+    );
+
+
+    bridgeFrame.contentWindow.postMessage(
+      {
+        type:
+          "ntma-api-request",
+
+        id:
+          request.id,
+
+        method:
+          request.method,
+
+        args:
+          request.args
+      },
+      "*"
+    );
+
+  }
+
+
+  /*
+    Queue a backend request.
+  */
+
+  function queueRequest(
+    method,
+    args,
+    successHandler,
+    failureHandler
+  ) {
+
+    const request = {
+
+      id:
+        "ntma-" +
+        (++requestCounter),
+
+      method:
+        method,
+
+      args:
+        args,
+
+      successHandler:
+        successHandler,
+
+      failureHandler:
+        failureHandler
+
+    };
+
+
+    /*
+      If the bridge is ready,
+      send immediately.
+    */
+
+    if (bridgeReady) {
+
+      sendRequest(
+        request
+      );
+
+    }
+
+
+    /*
+      Otherwise wait until the
+      bridge reports that it is ready.
+    */
+
+    else {
+
+      queuedRequests.push(
+        request
+      );
+
+    }
+
+  }
+
+
+  /*
+    Create a google.script.run-compatible
+    proxy.
+
+    This means your existing code can
+    continue using:
+
+      google.script.run
+        .withSuccessHandler(...)
+        .withFailureHandler(...)
+        .loginOfficer(...)
+
+    without rewriting the entire application.
+  */
+
+  const runProxy =
+    new Proxy(
+      {},
+      {
+
+        get:
+          function (
+            target,
+            property
+          ) {
+
+
+            /*
+              Success handler.
+            */
+
+            if (
+              property ===
+              "withSuccessHandler"
+            ) {
+
+              return function (
+                handler
+              ) {
+
+                return createRunner(
+                  handler,
+                  null
+                );
+
+              };
+
+            }
+
+
+            /*
+              Failure handler.
+            */
+
+            if (
+              property ===
+              "withFailureHandler"
+            ) {
+
+              return function (
+                handler
+              ) {
+
+                return createRunner(
+                  null,
+                  handler
+                );
+
+              };
+
+            }
+
+
+            /*
+              Direct backend function.
+            */
+
+            return function () {
+
+              const args =
+                Array.from(
+                  arguments
+                );
+
+
+              queueRequest(
+                property,
+                args,
+                null,
+                null
+              );
+
+            };
+
+          }
+
+      }
+    );
+
+
+  /*
+    Create a chained runner.
+
+    Supports:
+
+      google.script.run
+        .withSuccessHandler(...)
+        .withFailureHandler(...)
+        .loginOfficer(...)
+  */
+
+  function createRunner(
+    successHandler,
+    failureHandler
+  ) {
+
+    return new Proxy(
+      {},
+      {
+
+        get:
+          function (
+            target,
+            property
+          ) {
+
+
+            /*
+              Allow another success handler.
+            */
+
+            if (
+              property ===
+              "withSuccessHandler"
+            ) {
+
+              return function (
+                handler
+              ) {
+
+                return createRunner(
+                  handler,
+                  failureHandler
+                );
+
+              };
+
+            }
+
+
+            /*
+              Allow another failure handler.
+            */
+
+            if (
+              property ===
+              "withFailureHandler"
+            ) {
+
+              return function (
+                handler
+              ) {
+
+                return createRunner(
+                  successHandler,
+                  handler
+                );
+
+              };
+
+            }
+
+
+            /*
+              Backend Apps Script function.
+            */
+
+            return function () {
+
+              const args =
+                Array.from(
+                  arguments
+                );
+
+
+              queueRequest(
+                property,
+                args,
+                successHandler,
+                failureHandler
+              );
+
+            };
+
+          }
+
+      }
+    );
+
+  }
+
+
+  /*
+    Expose the compatibility layer
+    as google.script.run.
+  */
+
+  window.google = {
+
+    script: {
+
+      run:
+        runProxy
+
+    }
+
+  };
+
+
+})();
+</script>
