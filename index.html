@@ -3,20 +3,14 @@
 
 <head>
 
+  <base target="_top">
+
   <meta charset="UTF-8">
 
   <meta
     name="viewport"
-    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    content="width=device-width, initial-scale=1.0"
   >
-
-  <meta name="theme-color" content="#071a33">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="NTMA Gadget">
-  <link rel="manifest" href="./manifest.json">
-  <link rel="icon" href="./icon-192.png">
 
   <title>
     NTMA GADGET ACCOUNTABILITY SYSTEM
@@ -1610,6 +1604,92 @@
       font-weight: 700;
     }
 
+
+    .officer-admin-card {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--white);
+      padding: 18px;
+      margin-bottom: 18px;
+    }
+
+    .officer-admin-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .officer-admin-grid label {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .officer-admin-grid input,
+    .officer-admin-grid select {
+      width: 100%;
+      min-height: 42px;
+      padding: 9px 11px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fff;
+      font: inherit;
+    }
+
+    .officer-admin-grid .wide {
+      grid-column: 1 / -1;
+    }
+
+    .officer-admin-help {
+      margin: 0 0 14px;
+      color: var(--gray);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .officer-admin-message {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      display: none;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .officer-admin-message.success {
+      display: block;
+      background: var(--green-bg);
+      color: var(--green);
+    }
+
+    .officer-admin-message.error {
+      display: block;
+      background: var(--red-bg);
+      color: var(--red);
+    }
+
+    .officer-admin-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 14px;
+    }
+
+    .officer-table-wrap {
+      overflow-x: auto;
+    }
+
+    @media (max-width: 700px) {
+      .officer-admin-grid {
+        grid-template-columns: 1fr;
+      }
+      .officer-admin-grid .wide {
+        grid-column: auto;
+      }
+    }
+
     .account-bar {
       display: flex;
       align-items: center;
@@ -1944,6 +2024,140 @@
 
 <body>
 
+<!-- NTMA APPS SCRIPT BRIDGE -->
+<iframe
+  id="ntmaBridge"
+  src="https://script.google.com/macros/s/AKfycbzHv_0s6Gl4aA9paM1xl8pfRIAHDJQEvp_5UKFbyx-Arqo3AH9VsYqCQ7AOG9cqLwbU3g/exec?bridge=1"
+  style="width:0;height:0;border:0;position:absolute;left:-9999px;top:-9999px;"
+  aria-hidden="true">
+</iframe>
+
+<script>
+(function () {
+  const bridge = document.getElementById("ntmaBridge");
+  const pending = new Map();
+  let requestNumber = 0;
+  let bridgeReady = false;
+
+  function rejectAll(message) {
+    pending.forEach(function (request) {
+      try { request.reject(new Error(message)); } catch (e) {}
+    });
+    pending.clear();
+  }
+
+  window.addEventListener("message", function (event) {
+    const data = event.data;
+    if (!data) return;
+
+    if (data.type === "ntma-bridge-ready") {
+      bridgeReady = !!data.googleScriptAvailable;
+      console.log("NTMA Bridge ready:", bridgeReady);
+      window.ntmaBridgeReady = bridgeReady;
+      return;
+    }
+
+    if (data.type === "ntma-api-response") {
+      const request = pending.get(data.id);
+      if (!request) return;
+
+      pending.delete(data.id);
+
+      if (data.ok) {
+        request.resolve(data.result);
+      } else {
+        request.reject(new Error(data.error || "Apps Script request failed."));
+      }
+    }
+  });
+
+  window.ntmaCall = function (method, args) {
+    return new Promise(function (resolve, reject) {
+      if (!bridge || !bridge.contentWindow) {
+        reject(new Error("Apps Script Bridge is unavailable."));
+        return;
+      }
+
+      const id = "ntma-" + (++requestNumber);
+      pending.set(id, { resolve: resolve, reject: reject });
+
+      try {
+        bridge.contentWindow.postMessage({
+          type: "ntma-api-request",
+          id: id,
+          method: method,
+          args: Array.isArray(args) ? args : []
+        }, "*");
+      } catch (error) {
+        pending.delete(id);
+        reject(error);
+        return;
+      }
+
+      setTimeout(function () {
+        if (pending.has(id)) {
+          pending.delete(id);
+          reject(new Error("Apps Script Bridge timeout."));
+        }
+      }, 15000);
+    });
+  };
+
+  function createRunner(successHandler, failureHandler) {
+    return new Proxy({}, {
+      get: function (target, property) {
+        if (property === "withSuccessHandler") {
+          return function (handler) {
+            return createRunner(handler, failureHandler);
+          };
+        }
+
+        if (property === "withFailureHandler") {
+          return function (handler) {
+            return createRunner(successHandler, handler);
+          };
+        }
+
+        return function () {
+          const args = Array.from(arguments);
+          window.ntmaCall(property, args)
+            .then(function (result) {
+              if (typeof successHandler === "function") {
+                successHandler(result);
+              }
+            })
+            .catch(function (error) {
+              if (typeof failureHandler === "function") {
+                failureHandler(error);
+              } else {
+                console.error("NTMA Apps Script error:", error);
+              }
+            });
+        };
+      }
+    });
+  }
+
+  window.google = {
+    script: {
+      run: createRunner(null, null)
+    }
+  };
+
+  bridge.addEventListener("load", function () {
+    console.log("NTMA Bridge iframe loaded.");
+  });
+
+  setTimeout(function () {
+    if (!bridgeReady) {
+      console.warn("NTMA Bridge has not reported ready yet.");
+    }
+  }, 5000);
+})();
+</script>
+
+
+
 
 <div id="loginScreen">
 
@@ -2096,6 +2310,15 @@
       onclick="showPage('checklist')"
     >
       Checklist
+    </button>
+
+    <button
+      class="tab"
+      id="officerTab"
+      onclick="showPage('officers')"
+      style="display:none;"
+    >
+      Officer Accounts
     </button>
 
   </div>
@@ -2734,6 +2957,105 @@
   ></div>
 
 
+
+  <!-- ==============================
+       OFFICER ACCOUNTS PAGE
+  ============================== -->
+
+  <section
+    id="officerPage"
+    style="display:none;"
+  >
+
+    <div class="card">
+
+      <div class="card-header">
+        <div class="card-title">Officer Account Management</div>
+      </div>
+
+      <div class="card-body">
+
+        <div class="officer-admin-card">
+          <p class="officer-admin-help">
+            Add officer accounts without editing the spreadsheet. Passwords are hashed before they are stored.
+            Only an administrator can create new accounts.
+          </p>
+
+          <div class="officer-admin-grid">
+
+            <label>
+              Officer Name
+              <input id="newOfficerName" type="text" placeholder="D/Cdt Juan Dela Cruz" autocomplete="off">
+            </label>
+
+            <label>
+              Username
+              <input id="newOfficerUsername" type="text" placeholder="D/Cdt_DelaCruz" autocomplete="off">
+            </label>
+
+            <label>
+              New Password
+              <input id="newOfficerPassword" type="password" placeholder="Minimum 8 characters" autocomplete="new-password">
+            </label>
+
+            <label>
+              Confirm Password
+              <input id="newOfficerPasswordConfirm" type="password" placeholder="Re-enter password" autocomplete="new-password">
+            </label>
+
+            <label>
+              Role
+              <select id="newOfficerRole">
+                <option value="OFFICER">OFFICER</option>
+                <option value="REVIEWER">REVIEWER</option>
+                <option value="ADMIN">ADMIN</option>
+              </select>
+            </label>
+
+            <label>
+              Your Admin Password
+              <input id="adminAuthPassword" type="password" placeholder="Confirm administrator access" autocomplete="current-password">
+            </label>
+
+          </div>
+
+          <div class="officer-admin-actions">
+            <button type="button" class="secondary-btn" onclick="loadOfficerAccounts()">
+              REFRESH ACCOUNTS
+            </button>
+            <button type="button" class="primary-btn" onclick="createOfficerAccountClient()" style="margin-left:8px;">
+              ADD OFFICER
+            </button>
+          </div>
+
+          <div id="officerAdminMessage" class="officer-admin-message"></div>
+        </div>
+
+        <div class="card-header" style="padding-left:0;padding-right:0;">
+          <div class="card-title">Registered Officers</div>
+        </div>
+
+        <div class="officer-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Officer ID</th>
+                <th>Officer Name</th>
+                <th>Username</th>
+                <th>Role</th>
+              </tr>
+            </thead>
+            <tbody id="officerAccountsTable"></tbody>
+          </table>
+        </div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
   <div class="footer">
 
     <strong>
@@ -2776,161 +3098,6 @@
 </div>
 
 
-
-<iframe
-  id="backendBridge"
-  title="NTMA backend bridge"
-  src="https://script.google.com/macros/s/AKfycbzHv_0s6Gl4aA9paM1xl8pfRIAHDJQEvp_5UKFbyx-Arqo3AH9VsYqCQ7AOG9cqLwbU3g/exec?bridge=1"
-  style="position:absolute;width:1px;height:1px;border:0;opacity:0;pointer-events:none;"
-  aria-hidden="true"
-></iframe>
-
-<script>
-(function installAppsScriptBridge() {
-  const frame = document.getElementById("backendBridge");
-  let nextId = 1;
-  const pending = new Map();
-  const queue = [];
-  let bridgeReady = false;
-  let bridgeFailed = false;
-
-  function failRequest(item, message) {
-    if (item && item.failure) item.failure(new Error(message));
-  }
-
-  function sendNow(request) {
-    if (!frame || !frame.contentWindow) {
-      failRequest(request, "Backend bridge is unavailable.");
-      return;
-    }
-
-    frame.contentWindow.postMessage({
-      type: "ntma-api-request",
-      id: request.id,
-      method: request.method,
-      args: request.args
-    }, "*");
-  }
-
-  function flushQueue() {
-    if (!bridgeReady || bridgeFailed) return;
-    while (queue.length) {
-      sendNow(queue.shift());
-    }
-  }
-
-  if (frame) {
-    frame.addEventListener("load", function() {
-      bridgeReady = true;
-      bridgeFailed = false;
-      flushQueue();
-    });
-
-    frame.addEventListener("error", function() {
-      bridgeFailed = true;
-      bridgeReady = false;
-      while (queue.length) {
-        failRequest(queue.shift(), "Backend bridge failed to load.");
-      }
-    });
-
-    // If the iframe is blocked or never finishes loading, do not leave login
-    // stuck forever on CHECKING....
-    window.setTimeout(function() {
-      if (bridgeReady) return;
-      bridgeFailed = true;
-      while (queue.length) {
-        failRequest(queue.shift(), "Backend bridge did not load. Check the Apps Script deployment and Bridge.html.");
-      }
-    }, 15000);
-  }
-
-  function send(method, args, success, failure) {
-    const id = "req-" + (nextId++);
-    const request = {
-      id: id,
-      method: method,
-      args: args,
-      success: success,
-      failure: failure
-    };
-
-    pending.set(id, request);
-
-    if (bridgeFailed) {
-      pending.delete(id);
-      failRequest(request, "Backend bridge is unavailable.");
-      return;
-    }
-
-    if (bridgeReady) {
-      sendNow(request);
-    } else {
-      queue.push(request);
-    }
-  }
-
-  window.addEventListener("message", function(event) {
-    if (!event.data || event.data.type !== "ntma-api-response") return;
-
-    const item = pending.get(event.data.id);
-    if (!item) return;
-
-    pending.delete(event.data.id);
-
-    if (event.data.ok) {
-      if (item.success) item.success(event.data.result);
-    } else {
-      if (item.failure) {
-        item.failure(new Error(event.data.error || "Backend request failed."));
-      }
-    }
-  });
-
-  function makeRunner(state) {
-    return new Proxy({}, {
-      get: function(_target, prop) {
-        if (prop === "withSuccessHandler") {
-          return function(fn) {
-            return makeRunner({ success: fn, failure: state.failure });
-          };
-        }
-
-        if (prop === "withFailureHandler") {
-          return function(fn) {
-            return makeRunner({ success: state.success, failure: fn });
-          };
-        }
-
-        return function() {
-          send(
-            String(prop),
-            Array.prototype.slice.call(arguments),
-            state.success,
-            state.failure
-          );
-        };
-      }
-    });
-  }
-
-  window.google = window.google || {};
-  window.google.script = window.google.script || {};
-  window.google.script.run = makeRunner({ success: null, failure: null });
-})();
-</script>
-
-<script>
-(function registerPWA() {
-  if (!("serviceWorker" in navigator)) return;
-  window.addEventListener("load", function() {
-    navigator.serviceWorker.register("./service-worker.js").catch(function(error) {
-      console.warn("PWA service worker registration failed:", error);
-    });
-  });
-})();
-</script>
-
 <script>
 
 
@@ -2939,7 +3106,7 @@
 ===================================================== */
 
 const SCANNER_URL =
-  "./scanner.html";
+  "https://code-tester-del.github.io/ntma-cellphone-scanner/";
 
 
 
@@ -3026,7 +3193,7 @@ function openScanner() {
     .run
     .withSuccessHandler(function() {
 
-      window.location.href =
+      window.top.location.href =
         SCANNER_URL;
 
     })
@@ -3083,6 +3250,13 @@ function showPage(page) {
       ? "block"
       : "none";
 
+  document
+    .getElementById("officerPage")
+    .style.display =
+    page === "officers"
+      ? "block"
+      : "none";
+
 
   document
     .getElementById("scanTab")
@@ -3115,6 +3289,13 @@ function showPage(page) {
       page === "checklist"
     );
 
+  document
+    .getElementById("officerTab")
+    .classList.toggle(
+      "active",
+      page === "officers"
+    );
+
 
   if (page === "data") {
 
@@ -3133,6 +3314,17 @@ function showPage(page) {
   if (page === "checklist") {
 
     loadChecklist();
+
+  }
+
+  if (page === "officers") {
+
+    if (!currentOfficer || String(currentOfficer.role || '').toUpperCase() !== 'ADMIN') {
+      showPage('scan');
+      return;
+    }
+
+    loadOfficerAccounts();
 
   }
 
@@ -3252,6 +3444,147 @@ function updateAccountBar() {
 }
 
 
+
+function updateOfficerManagementVisibility() {
+  const tab = document.getElementById("officerTab");
+  if (!tab) return;
+
+  const isAdmin =
+    currentOfficer &&
+    String(currentOfficer.role || '').toUpperCase() === 'ADMIN';
+
+  tab.style.display = isAdmin ? 'inline-flex' : 'none';
+
+  if (!isAdmin && document.getElementById('officerPage').style.display !== 'none') {
+    showPage('scan');
+  }
+}
+
+function setOfficerAdminMessage(message, type) {
+  const box = document.getElementById('officerAdminMessage');
+  if (!box) return;
+  box.textContent = message || '';
+  box.className = 'officer-admin-message ' + (type || '');
+}
+
+function createOfficerAccountClient() {
+  if (!currentOfficer || String(currentOfficer.role || '').toUpperCase() !== 'ADMIN') {
+    alert('Administrator access is required.');
+    return;
+  }
+
+  const name = document.getElementById('newOfficerName').value.trim();
+  const username = document.getElementById('newOfficerUsername').value.trim();
+  const password = document.getElementById('newOfficerPassword').value;
+  const confirm = document.getElementById('newOfficerPasswordConfirm').value;
+  const role = document.getElementById('newOfficerRole').value;
+  const adminPassword = document.getElementById('adminAuthPassword').value;
+
+  if (!name || !username || !password || !confirm || !adminPassword) {
+    setOfficerAdminMessage('Please complete all fields.', 'error');
+    return;
+  }
+
+  if (password !== confirm) {
+    setOfficerAdminMessage('The new passwords do not match.', 'error');
+    return;
+  }
+
+  const button = document.querySelector('#officerPage .officer-admin-actions button');
+  if (button) {
+    button.disabled = true;
+    button.textContent = 'CREATING...';
+  }
+  setOfficerAdminMessage('', '');
+
+  google.script.run
+    .withSuccessHandler(function(result) {
+      if (button) {
+        button.disabled = false;
+        button.textContent = 'ADD OFFICER';
+      }
+
+      if (!result || !result.success) {
+        setOfficerAdminMessage(result && result.message ? result.message : 'Unable to create officer account.', 'error');
+        return;
+      }
+
+      document.getElementById('newOfficerName').value = '';
+      document.getElementById('newOfficerUsername').value = '';
+      document.getElementById('newOfficerPassword').value = '';
+      document.getElementById('newOfficerPasswordConfirm').value = '';
+
+      setOfficerAdminMessage(
+        'Account created: ' + result.officerId + ' — ' + result.username,
+        'success'
+      );
+
+      loadOfficerAccounts();
+    })
+    .withFailureHandler(function(error) {
+      if (button) {
+        button.disabled = false;
+        button.textContent = 'ADD OFFICER';
+      }
+      setOfficerAdminMessage(
+        error && error.message ? error.message : 'Unable to create officer account.',
+        'error'
+      );
+    })
+    .createOfficerAccount(
+      currentOfficer.username,
+      adminPassword,
+      name,
+      username,
+      password,
+      role
+    );
+}
+
+function loadOfficerAccounts() {
+  if (!currentOfficer || String(currentOfficer.role || '').toUpperCase() !== 'ADMIN') return;
+
+  const body = document.getElementById('officerAccountsTable');
+  if (!body) return;
+
+  const adminPassword = document.getElementById('adminAuthPassword').value;
+  if (!adminPassword) {
+    body.innerHTML = '<tr><td colspan="4">Enter your Admin Password above, then click REFRESH ACCOUNTS.</td></tr>';
+    return;
+  }
+
+  body.innerHTML = '<tr><td colspan="4">Loading...</td></tr>';
+
+  google.script.run
+    .withSuccessHandler(function(accounts) {
+      body.innerHTML = '';
+
+      if (!accounts || !accounts.length) {
+        body.innerHTML = '<tr><td colspan="4">No officer accounts found.</td></tr>';
+        return;
+      }
+
+      accounts.forEach(function(account) {
+        const row = document.createElement('tr');
+        row.innerHTML =
+          '<td>' + escapeHtml(account.officerId || '') + '</td>' +
+          '<td>' + escapeHtml(account.officerName || '') + '</td>' +
+          '<td>' + escapeHtml(account.username || '') + '</td>' +
+          '<td>' + escapeHtml(account.role || '') + '</td>';
+        body.appendChild(row);
+      });
+    })
+    .withFailureHandler(function(error) {
+      body.innerHTML = '<tr><td colspan="4">Unable to load officer accounts.</td></tr>';
+      console.error(error);
+    })
+    .getOfficerAccounts(
+      currentOfficer.username,
+      adminPassword
+    );
+}
+
+
 function showApplication() {
 
   document
@@ -3263,6 +3596,7 @@ function showApplication() {
     .style.display = "block";
 
   updateAccountBar();
+  updateOfficerManagementVisibility();
 
 }
 
@@ -3290,69 +3624,64 @@ function loginOfficerClient(
 ) {
 
   const button =
-    document.getElementById(
-      "loginButton"
-    );
+    document.getElementById("loginButton");
 
   const errorBox =
-    document.getElementById(
-      "loginError"
-    );
+    document.getElementById("loginError");
 
   button.disabled = true;
   button.textContent = "CHECKING...";
   errorBox.textContent = "";
 
-  google
-    .script
-    .run
-    .withSuccessHandler(
-      function(result) {
+  if (typeof window.ntmaCall !== "function") {
+    button.disabled = false;
+    button.textContent = "LOGIN";
+    errorBox.textContent = "System connection is not available.";
+    console.error("NTMA ntmaCall is not available.");
+    return;
+  }
 
-        button.disabled = false;
-        button.textContent = "LOGIN";
+  console.log("NTMA: sending login request...");
 
-        if (!result || !result.success) {
+  window.ntmaCall(
+    "loginOfficer",
+    [username, password]
+  )
+  .then(function (result) {
 
-          errorBox.textContent =
-            result && result.message
-              ? result.message
-              : "Invalid username or password.";
+    console.log("NTMA: login response:", result);
 
-          return;
+    button.disabled = false;
+    button.textContent = "LOGIN";
 
-        }
+    if (!result || !result.success) {
+      errorBox.textContent =
+        result && result.message
+          ? result.message
+          : "Invalid username or password.";
+      return;
+    }
 
-        saveOfficer(result);
-        showApplication();
+    saveOfficer(result);
+    showApplication();
 
-        if (initialPhoneId) {
+    if (initialPhoneId) {
+      loadPhoneRecord(initialPhoneId);
+    }
 
-          loadPhoneRecord(
-            initialPhoneId
-          );
+  })
+  .catch(function (error) {
 
-        }
+    console.error("NTMA: login error:", error);
 
-      }
-    )
-    .withFailureHandler(
-      function(error) {
+    button.disabled = false;
+    button.textContent = "LOGIN";
 
-        button.disabled = false;
-        button.textContent = "LOGIN";
-
-        errorBox.textContent =
-          "Unable to connect to the login service.";
-
-        console.error(error);
-
-      }
-    )
-    .loginOfficer(
-      username,
-      password
-    );
+    errorBox.textContent =
+      error && error.message
+        ? error.message
+        : "Unable to connect to the login service.";
+  });
 
 }
 
@@ -4952,501 +5281,4 @@ function escapePrint(value) {
 
 </body>
 
-<!-- NTMA Apps Script Bridge -->
-<script>
-(function () {
-
-  /*
-    NTMA GADGET ACCOUNTABILITY SYSTEM
-    GitHub Pages → Apps Script Bridge
-
-    This allows the existing google.script.run
-    calls in the application to work from GitHub Pages.
-  */
-
-
-  const NTMA_BRIDGE_URL =
-    "https://script.google.com/macros/s/AKfycbzHv_0s6Gl4aA9paM1xl8pfRIAHDJQEvp_5UKFbyx-Arqo3AH9VsYqCQ7AOG9cqLwbU3g/exec?bridge=1";
-
-
-  /*
-    If this page is already running inside
-    Google Apps Script, do not create another bridge.
-  */
-
-  if (
-    typeof google !== "undefined" &&
-    google.script &&
-    google.script.run
-  ) {
-    return;
-  }
-
-
-  let requestCounter = 0;
-
-  const pendingRequests = new Map();
-
-  const queuedRequests = [];
-
-  let bridgeReady = false;
-
-
-  /*
-    Create the hidden Apps Script Bridge iframe.
-  */
-
-  const bridgeFrame = document.createElement("iframe");
-
-  bridgeFrame.src = NTMA_BRIDGE_URL;
-
-  bridgeFrame.style.display = "none";
-
-  bridgeFrame.setAttribute(
-    "aria-hidden",
-    "true"
-  );
-
-  document.body.appendChild(
-    bridgeFrame
-  );
-
-
-  /*
-    Receive messages from Apps Script.
-  */
-
-  window.addEventListener(
-    "message",
-    function (event) {
-
-      const data = event.data;
-
-      if (!data) {
-        return;
-      }
-
-
-      /*
-        Apps Script Bridge is ready.
-      */
-
-      if (
-        data.type ===
-        "ntma-bridge-ready"
-      ) {
-
-        bridgeReady = true;
-
-
-        /*
-          Send any requests that were
-          made before the bridge loaded.
-        */
-
-        while (
-          queuedRequests.length > 0
-        ) {
-
-          const request =
-            queuedRequests.shift();
-
-          sendRequest(request);
-
-        }
-
-        return;
-      }
-
-
-      /*
-        Backend response.
-      */
-
-      if (
-        data.type ===
-        "ntma-api-response"
-      ) {
-
-        const request =
-          pendingRequests.get(
-            data.id
-          );
-
-
-        if (!request) {
-          return;
-        }
-
-
-        pendingRequests.delete(
-          data.id
-        );
-
-
-        /*
-          Successful Apps Script call.
-        */
-
-        if (data.ok) {
-
-          if (
-            typeof request.successHandler ===
-            "function"
-          ) {
-
-            request.successHandler(
-              data.result
-            );
-
-          }
-
-        }
-
-
-        /*
-          Failed Apps Script call.
-        */
-
-        else {
-
-          if (
-            typeof request.failureHandler ===
-            "function"
-          ) {
-
-            request.failureHandler({
-
-              message:
-                data.error ||
-                "Apps Script request failed."
-
-            });
-
-          }
-
-        }
-
-      }
-
-    }
-  );
-
-
-  /*
-    Send request to Apps Script.
-  */
-
-  function sendRequest(
-    request
-  ) {
-
-    pendingRequests.set(
-      request.id,
-      request
-    );
-
-
-    bridgeFrame.contentWindow.postMessage(
-      {
-        type:
-          "ntma-api-request",
-
-        id:
-          request.id,
-
-        method:
-          request.method,
-
-        args:
-          request.args
-      },
-      "*"
-    );
-
-  }
-
-
-  /*
-    Queue a backend request.
-  */
-
-  function queueRequest(
-    method,
-    args,
-    successHandler,
-    failureHandler
-  ) {
-
-    const request = {
-
-      id:
-        "ntma-" +
-        (++requestCounter),
-
-      method:
-        method,
-
-      args:
-        args,
-
-      successHandler:
-        successHandler,
-
-      failureHandler:
-        failureHandler
-
-    };
-
-
-    /*
-      If the bridge is ready,
-      send immediately.
-    */
-
-    if (bridgeReady) {
-
-      sendRequest(
-        request
-      );
-
-    }
-
-
-    /*
-      Otherwise wait until the
-      bridge reports that it is ready.
-    */
-
-    else {
-
-      queuedRequests.push(
-        request
-      );
-
-    }
-
-  }
-
-
-  /*
-    Create a google.script.run-compatible
-    proxy.
-
-    This means your existing code can
-    continue using:
-
-      google.script.run
-        .withSuccessHandler(...)
-        .withFailureHandler(...)
-        .loginOfficer(...)
-
-    without rewriting the entire application.
-  */
-
-  const runProxy =
-    new Proxy(
-      {},
-      {
-
-        get:
-          function (
-            target,
-            property
-          ) {
-
-
-            /*
-              Success handler.
-            */
-
-            if (
-              property ===
-              "withSuccessHandler"
-            ) {
-
-              return function (
-                handler
-              ) {
-
-                return createRunner(
-                  handler,
-                  null
-                );
-
-              };
-
-            }
-
-
-            /*
-              Failure handler.
-            */
-
-            if (
-              property ===
-              "withFailureHandler"
-            ) {
-
-              return function (
-                handler
-              ) {
-
-                return createRunner(
-                  null,
-                  handler
-                );
-
-              };
-
-            }
-
-
-            /*
-              Direct backend function.
-            */
-
-            return function () {
-
-              const args =
-                Array.from(
-                  arguments
-                );
-
-
-              queueRequest(
-                property,
-                args,
-                null,
-                null
-              );
-
-            };
-
-          }
-
-      }
-    );
-
-
-  /*
-    Create a chained runner.
-
-    Supports:
-
-      google.script.run
-        .withSuccessHandler(...)
-        .withFailureHandler(...)
-        .loginOfficer(...)
-  */
-
-  function createRunner(
-    successHandler,
-    failureHandler
-  ) {
-
-    return new Proxy(
-      {},
-      {
-
-        get:
-          function (
-            target,
-            property
-          ) {
-
-
-            /*
-              Allow another success handler.
-            */
-
-            if (
-              property ===
-              "withSuccessHandler"
-            ) {
-
-              return function (
-                handler
-              ) {
-
-                return createRunner(
-                  handler,
-                  failureHandler
-                );
-
-              };
-
-            }
-
-
-            /*
-              Allow another failure handler.
-            */
-
-            if (
-              property ===
-              "withFailureHandler"
-            ) {
-
-              return function (
-                handler
-              ) {
-
-                return createRunner(
-                  successHandler,
-                  handler
-                );
-
-              };
-
-            }
-
-
-            /*
-              Backend Apps Script function.
-            */
-
-            return function () {
-
-              const args =
-                Array.from(
-                  arguments
-                );
-
-
-              queueRequest(
-                property,
-                args,
-                successHandler,
-                failureHandler
-              );
-
-            };
-
-          }
-
-      }
-    );
-
-  }
-
-
-  /*
-    Expose the compatibility layer
-    as google.script.run.
-  */
-
-  window.google = {
-
-    script: {
-
-      run:
-        runProxy
-
-    }
-
-  };
-
-
-})();
-</script>
+</html>
