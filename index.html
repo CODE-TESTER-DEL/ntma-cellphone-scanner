@@ -2781,7 +2781,7 @@
   id="backendBridge"
   title="NTMA backend bridge"
   src="https://script.google.com/macros/s/AKfycbzHv_0s6Gl4aA9paM1xl8pfRIAHDJQEvp_5UKFbyx-Arqo3AH9VsYqCQ7AOG9cqLwbU3g/exec?bridge=1"
-  style="display:none;width:0;height:0;border:0;"
+  style="position:absolute;width:1px;height:1px;border:0;opacity:0;pointer-events:none;"
   aria-hidden="true"
 ></iframe>
 
@@ -2790,39 +2790,100 @@
   const frame = document.getElementById("backendBridge");
   let nextId = 1;
   const pending = new Map();
+  const queue = [];
+  let bridgeReady = false;
+  let bridgeFailed = false;
+
+  function failRequest(item, message) {
+    if (item && item.failure) item.failure(new Error(message));
+  }
+
+  function sendNow(request) {
+    if (!frame || !frame.contentWindow) {
+      failRequest(request, "Backend bridge is unavailable.");
+      return;
+    }
+
+    frame.contentWindow.postMessage({
+      type: "ntma-api-request",
+      id: request.id,
+      method: request.method,
+      args: request.args
+    }, "*");
+  }
+
+  function flushQueue() {
+    if (!bridgeReady || bridgeFailed) return;
+    while (queue.length) {
+      sendNow(queue.shift());
+    }
+  }
+
+  if (frame) {
+    frame.addEventListener("load", function() {
+      bridgeReady = true;
+      bridgeFailed = false;
+      flushQueue();
+    });
+
+    frame.addEventListener("error", function() {
+      bridgeFailed = true;
+      bridgeReady = false;
+      while (queue.length) {
+        failRequest(queue.shift(), "Backend bridge failed to load.");
+      }
+    });
+
+    // If the iframe is blocked or never finishes loading, do not leave login
+    // stuck forever on CHECKING....
+    window.setTimeout(function() {
+      if (bridgeReady) return;
+      bridgeFailed = true;
+      while (queue.length) {
+        failRequest(queue.shift(), "Backend bridge did not load. Check the Apps Script deployment and Bridge.html.");
+      }
+    }, 15000);
+  }
 
   function send(method, args, success, failure) {
     const id = "req-" + (nextId++);
-    pending.set(id, { success: success, failure: failure });
-
-    const post = function() {
-      if (!frame || !frame.contentWindow) {
-        const item = pending.get(id);
-        pending.delete(id);
-        if (item && item.failure) item.failure(new Error("Backend bridge is unavailable."));
-        return;
-      }
-      frame.contentWindow.postMessage({
-        type: "ntma-api-request",
-        id: id,
-        method: method,
-        args: args
-      "*"
+    const request = {
+      id: id,
+      method: method,
+      args: args,
+      success: success,
+      failure: failure
     };
 
-    if (frame.contentWindow) post();
-    else frame.addEventListener("load", post, { once: true });
+    pending.set(id, request);
+
+    if (bridgeFailed) {
+      pending.delete(id);
+      failRequest(request, "Backend bridge is unavailable.");
+      return;
+    }
+
+    if (bridgeReady) {
+      sendNow(request);
+    } else {
+      queue.push(request);
+    }
   }
 
   window.addEventListener("message", function(event) {
     if (!event.data || event.data.type !== "ntma-api-response") return;
+
     const item = pending.get(event.data.id);
     if (!item) return;
+
     pending.delete(event.data.id);
+
     if (event.data.ok) {
       if (item.success) item.success(event.data.result);
     } else {
-      if (item.failure) item.failure(new Error(event.data.error || "Backend request failed."));
+      if (item.failure) {
+        item.failure(new Error(event.data.error || "Backend request failed."));
+      }
     }
   });
 
@@ -2830,13 +2891,24 @@
     return new Proxy({}, {
       get: function(_target, prop) {
         if (prop === "withSuccessHandler") {
-          return function(fn) { return makeRunner({ success: fn, failure: state.failure }); };
+          return function(fn) {
+            return makeRunner({ success: fn, failure: state.failure });
+          };
         }
+
         if (prop === "withFailureHandler") {
-          return function(fn) { return makeRunner({ success: state.success, failure: fn }); };
+          return function(fn) {
+            return makeRunner({ success: state.success, failure: fn });
+          };
         }
+
         return function() {
-          send(String(prop), Array.prototype.slice.call(arguments), state.success, state.failure);
+          send(
+            String(prop),
+            Array.prototype.slice.call(arguments),
+            state.success,
+            state.failure
+          );
         };
       }
     });
