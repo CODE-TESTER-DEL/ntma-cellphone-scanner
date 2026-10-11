@@ -3,10 +3,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta
-    name="viewport"
-    content="width=device-width,initial-scale=1,viewport-fit=cover"
-  >
+  <meta name="viewport"
+        content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#071a33">
   <title>NTMA Barcode Scanner</title>
 
@@ -17,11 +15,11 @@
 
     body {
       margin: 0;
+      min-height: 100vh;
+      padding: 20px;
       background: #071a33;
       color: #fff;
       font-family: Arial, Helvetica, sans-serif;
-      min-height: 100vh;
-      padding: 20px;
     }
 
     .wrap {
@@ -37,100 +35,70 @@
     }
 
     .back {
+      padding: 10px 12px;
       border: 1px solid #ffffff33;
+      border-radius: 9px;
       background: #ffffff12;
       color: #fff;
-      border-radius: 9px;
-      padding: 10px 12px;
       font-weight: 800;
     }
 
     .title {
-      font-weight: 800;
       font-size: 17px;
+      font-weight: 800;
     }
 
     .sub {
+      margin-top: 3px;
       color: #b9c7d7;
       font-size: 12px;
-      margin-top: 3px;
     }
 
     .camera {
-      background: #000;
-      border-radius: 16px;
+      position: relative;
       overflow: hidden;
       border: 1px solid #ffffff22;
-      position: relative;
+      border-radius: 16px;
+      background: #000;
     }
 
     .camera video {
       display: block;
       width: 100%;
-      height: auto;
       min-height: 280px;
-      object-fit: cover;
+      max-height: 65vh;
+      object-fit: contain;
       background: #000;
     }
 
-    .line {
+    .guide {
       position: absolute;
-      left: 10%;
-      right: 10%;
       top: 50%;
-      height: 2px;
-      background: #d4a84f;
-      box-shadow: 0 0 0 1px #071a33aa;
+      left: 7%;
+      width: 86%;
+      height: 30%;
+      min-height: 75px;
+      transform: translateY(-50%);
+      border: 2px solid #d4a84f;
+      border-radius: 8px;
       pointer-events: none;
+    }
+
+    .guide-line {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: #d4a84f99;
     }
 
     .status {
       padding: 13px 2px;
       color: #cbd5e1;
       font-size: 13px;
+      line-height: 1.5;
       text-align: center;
-      line-height: 1.45;
-    }
-
-    .manual {
-      margin-top: 14px;
-      display: flex;
-      gap: 8px;
-    }
-
-    .manual input {
-      flex: 1;
-      min-width: 0;
-      border: 1px solid #ffffff2d;
-      border-radius: 9px;
-      padding: 12px;
-      background: #fff;
-      color: #111;
-      font-size: 16px;
-    }
-
-    .manual button,
-    .primary {
-      border: 0;
-      border-radius: 9px;
-      background: #d4a84f;
-      color: #071a33;
-      font-weight: 800;
-      padding: 12px 15px;
-    }
-
-    button {
-      cursor: pointer;
-      min-height: 44px;
-    }
-
-    button:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-
-    .hidden {
-      display: none;
     }
 
     .error {
@@ -141,12 +109,53 @@
       color: #b8f0c9;
     }
 
-    .camera-help {
+    .manual {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .manual input {
+      flex: 1;
+      min-width: 0;
+      padding: 12px;
+      border: 1px solid #ffffff2d;
+      border-radius: 9px;
+      background: #fff;
+      color: #111;
+      font-size: 16px;
+    }
+
+    button {
+      min-height: 44px;
+      cursor: pointer;
+    }
+
+    .primary,
+    .manual button {
+      padding: 12px 15px;
+      border: 0;
+      border-radius: 9px;
+      background: #d4a84f;
+      color: #071a33;
+      font-weight: 800;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .help {
+      margin-top: 5px;
       color: #b9c7d7;
       font-size: 12px;
       line-height: 1.5;
       text-align: center;
-      margin-top: 6px;
     }
   </style>
 </head>
@@ -165,14 +174,11 @@
     </div>
 
     <div class="camera">
-      <video
-        id="video"
-        muted
-        playsinline
-        autoplay
-      ></video>
+      <video id="video" muted playsinline autoplay></video>
 
-      <div class="line"></div>
+      <div class="guide">
+        <div class="guide-line"></div>
+      </div>
     </div>
 
     <div id="status" class="status" aria-live="polite">
@@ -183,8 +189,9 @@
       RETRY CAMERA
     </button>
 
-    <div class="camera-help">
-      Keep the barcode steady and adjust the distance until it looks sharp.
+    <div class="help">
+      Align the barcode inside the box. Keep the phone steady and
+      move it slightly farther away if the barcode looks blurry.
     </div>
 
     <div class="manual">
@@ -194,14 +201,15 @@
         placeholder="Enter Gadget ID manually"
         aria-label="Gadget ID"
       >
-
-      <button id="verify" type="button">
-        VERIFY
-      </button>
+      <button id="verify" type="button">VERIFY</button>
     </div>
   </main>
 
-  <script src="https://unpkg.com/@zxing/browser@latest"></script>
+  <!-- Barcode format and decoding hints -->
+  <script src="https://unpkg.com/@zxing/library@0.21.3"></script>
+
+  <!-- Browser camera scanning -->
+  <script src="https://unpkg.com/@zxing/browser@0.1.5"></script>
 
   <script>
     const video = document.getElementById("video");
@@ -209,17 +217,20 @@
     const startBtn = document.getElementById("start");
     const manual = document.getElementById("manual");
 
+    // Return to the main GitHub Pages app.
     const APP_URL = "./";
 
-    let controls = null;
     let reader = null;
+    let controls = null;
     let stream = null;
     let busy = false;
     let starting = false;
+    let lastCode = "";
+    let lastCodeTime = 0;
 
-    function status(message, cls = "") {
+    function setStatus(message, type = "") {
       statusBox.textContent = message;
-      statusBox.className = "status" + (cls ? " " + cls : "");
+      statusBox.className = "status" + (type ? " " + type : "");
     }
 
     function stopCamera() {
@@ -227,8 +238,8 @@
         if (controls && typeof controls.stop === "function") {
           controls.stop();
         }
-      } catch (e) {
-        console.warn("Scanner controls could not stop cleanly.", e);
+      } catch (error) {
+        console.warn("Could not stop scanner controls:", error);
       }
 
       controls = null;
@@ -237,8 +248,8 @@
         if (stream) {
           stream.getTracks().forEach(track => track.stop());
         }
-      } catch (e) {
-        console.warn("Camera stream could not stop cleanly.", e);
+      } catch (error) {
+        console.warn("Could not stop camera stream:", error);
       }
 
       stream = null;
@@ -254,28 +265,27 @@
       id = String(id || "").trim();
 
       if (!id) {
-        status("No Gadget ID detected. Scan again or enter the ID manually.", "error");
+        setStatus("Enter a valid Gadget ID.", "error");
         return;
       }
 
       if (busy) return;
 
       busy = true;
+      setStatus("Gadget ID detected. Returning to the app…", "success");
       stopCamera();
-
-      status("Barcode detected. Returning to the app…", "success");
 
       window.location.href =
         APP_URL + "?phoneId=" + encodeURIComponent(id);
     }
 
-    async function applyFocusSettings() {
+    async function applyAutofocus() {
       if (!stream) return;
 
       const track = stream.getVideoTracks()[0];
 
       if (!track || typeof track.applyConstraints !== "function") {
-        status("Camera running. Autofocus is managed by your device.");
+        console.log("Manual focus constraints are unavailable.");
         return;
       }
 
@@ -285,43 +295,44 @@
             ? track.getCapabilities()
             : {};
 
-        const supportedConstraints = navigator.mediaDevices
-          && navigator.mediaDevices.getSupportedConstraints
-          ? navigator.mediaDevices.getSupportedConstraints()
-          : {};
-
-        const focusModes = capabilities.focusMode || [];
+        const supported =
+          navigator.mediaDevices.getSupportedConstraints
+            ? navigator.mediaDevices.getSupportedConstraints()
+            : {};
 
         const advanced = [];
 
         if (
-          supportedConstraints.focusMode &&
-          focusModes.includes("continuous")
+          supported.focusMode &&
+          capabilities.focusMode &&
+          capabilities.focusMode.includes("continuous")
         ) {
           advanced.push({ focusMode: "continuous" });
         }
 
         if (
-          supportedConstraints.focusDistance &&
-          capabilities.focusDistance
+          supported.zoom &&
+          capabilities.zoom &&
+          typeof capabilities.zoom.min === "number"
         ) {
-          const min = capabilities.focusDistance.min;
-          const max = capabilities.focusDistance.max;
-
-          // Do not force a distance: let autofocus choose first.
-          // The capability check is kept for future device-specific tuning.
-          console.log("Supported focus distance:", min, max);
+          // Do not force digital zoom. It can make small barcodes
+          // blurrier on some devices.
+          console.log(
+            "Camera zoom range:",
+            capabilities.zoom.min,
+            capabilities.zoom.max
+          );
         }
 
-        if (advanced.length) {
+        if (advanced.length > 0) {
           await track.applyConstraints({ advanced });
-          status("Camera ready. Continuous autofocus requested.", "success");
+          console.log("Continuous autofocus requested.");
         } else {
-          status("Camera ready. Your phone controls autofocus automatically.");
+          console.log("Camera manages focus automatically.");
         }
-      } catch (e) {
-        console.warn("Optional focus settings were not applied:", e);
-        status("Camera ready. Autofocus is managed by your device.");
+      } catch (error) {
+        // Some phones do not allow web pages to control focus.
+        console.warn("Autofocus setting was not applied:", error);
       }
     }
 
@@ -337,18 +348,20 @@
       try {
         if (!navigator.mediaDevices ||
             !navigator.mediaDevices.getUserMedia) {
-          throw new Error("Camera access requires a supported secure browser.");
+          throw new Error(
+            "Camera access is unavailable. Open this page over HTTPS."
+          );
         }
 
-        if (!window.ZXingBrowser) {
-          throw new Error("Scanner library did not load.");
+        if (!window.ZXing || !window.ZXingBrowser) {
+          throw new Error(
+            "The barcode library did not load. Check your internet connection."
+          );
         }
 
-        status("Requesting camera access…");
+        setStatus("Opening rear camera…");
 
-        // Ask for the rear camera and a higher-resolution image.
-        // Continuous focus is applied separately when supported.
-        const cameraConstraints = {
+        const constraints = {
           audio: false,
           video: {
             facingMode: { ideal: "environment" },
@@ -357,55 +370,79 @@
           }
         };
 
-        stream = await navigator.mediaDevices.getUserMedia(
-          cameraConstraints
-        );
-
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
         video.srcObject = stream;
 
         await video.play();
+        await applyAutofocus();
 
-        await applyFocusSettings();
+        // NTMA Gadget IDs contain letters and numbers.
+        // Code 128 supports alphanumeric IDs and hyphens.
+        const hints = new Map();
 
-        reader = new ZXingBrowser.BrowserMultiFormatReader();
+        hints.set(
+          ZXing.DecodeHintType.POSSIBLE_FORMATS,
+          [ZXing.BarcodeFormat.CODE_128]
+        );
 
-        status("Point the camera at the barcode. Hold it steady.");
+        // Ask ZXing to spend more effort finding a difficult barcode.
+        hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
 
+        reader = new ZXingBrowser.BrowserMultiFormatReader(hints);
+
+        setStatus(
+          "Ready to scan. Keep the barcode inside the box and hold steady."
+        );
+
+        // Repeatedly decode the live video feed.
         controls = await reader.decodeFromVideoElement(
           video,
           (result, error) => {
-            if (result && !busy) {
-              finish(result.getText());
+            if (!result || busy) return;
+
+            const text = String(result.getText() || "").trim();
+            if (!text) return;
+
+            // Ignore rapid repeat detections of the same code.
+            const now = Date.now();
+
+            if (text === lastCode && now - lastCodeTime < 1500) {
+              return;
             }
+
+            lastCode = text;
+            lastCodeTime = now;
+
+            finish(text);
           }
         );
 
-      } catch (e) {
-        console.error("Scanner error:", e);
-
+      } catch (error) {
+        console.error("Scanner startup error:", error);
         stopCamera();
 
-        status(
-          "Camera unavailable. Allow camera access or enter the Gadget ID manually.",
+        setStatus(
+          error && error.message
+            ? error.message
+            : "Camera unavailable. Allow camera access or enter the ID manually.",
           "error"
         );
 
         startBtn.classList.remove("hidden");
+
       } finally {
         starting = false;
         startBtn.disabled = false;
       }
     }
 
-    document.getElementById("back").addEventListener("click", goBack);
+    document.getElementById("back")
+      .addEventListener("click", goBack);
 
-    startBtn.addEventListener("click", () => {
-      startCamera();
-    });
+    startBtn.addEventListener("click", startCamera);
 
-    document.getElementById("verify").addEventListener("click", () => {
-      finish(manual.value);
-    });
+    document.getElementById("verify")
+      .addEventListener("click", () => finish(manual.value));
 
     manual.addEventListener("keydown", event => {
       if (event.key === "Enter") {
