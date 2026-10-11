@@ -9,9 +9,7 @@
   <title>NTMA Barcode Scanner</title>
 
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
@@ -93,6 +91,36 @@
       background: #d4a84f99;
     }
 
+    .camera-controls {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .control-btn {
+      flex: 1;
+      min-width: 0;
+      min-height: 46px;
+      padding: 11px 12px;
+      border: 1px solid #ffffff30;
+      border-radius: 9px;
+      background: #ffffff12;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .control-btn.active {
+      border-color: #d4a84f;
+      background: #d4a84f;
+      color: #071a33;
+    }
+
+    .control-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
     .status {
       padding: 13px 2px;
       color: #cbd5e1;
@@ -101,12 +129,15 @@
       text-align: center;
     }
 
-    .error {
-      color: #ffb4b4;
-    }
+    .error { color: #ffb4b4; }
+    .success { color: #b8f0c9; }
 
-    .success {
-      color: #b8f0c9;
+    .help {
+      margin-top: 5px;
+      color: #b9c7d7;
+      font-size: 12px;
+      line-height: 1.5;
+      text-align: center;
     }
 
     .manual {
@@ -146,26 +177,14 @@
       opacity: 0.6;
     }
 
-    .hidden {
-      display: none;
-    }
-
-    .help {
-      margin-top: 5px;
-      color: #b9c7d7;
-      font-size: 12px;
-      line-height: 1.5;
-      text-align: center;
-    }
+    .hidden { display: none; }
   </style>
 </head>
 
 <body>
   <main class="wrap">
     <div class="top">
-      <button class="back" id="back" type="button">
-        ← BACK
-      </button>
+      <button class="back" id="back" type="button">← BACK</button>
 
       <div>
         <div class="title">NTMA Barcode Scanner</div>
@@ -179,6 +198,21 @@
       <div class="guide">
         <div class="guide-line"></div>
       </div>
+    </div>
+
+    <div class="camera-controls">
+      <button
+        id="torch"
+        class="control-btn"
+        type="button"
+        disabled
+      >
+        🔦 FLASHLIGHT UNAVAILABLE
+      </button>
+    </div>
+
+    <div id="torchStatus" class="help" aria-live="polite">
+      Checking flashlight support…
     </div>
 
     <div id="status" class="status" aria-live="polite">
@@ -205,19 +239,17 @@
     </div>
   </main>
 
-  <!-- Barcode format and decoding hints -->
   <script src="https://unpkg.com/@zxing/library@0.21.3"></script>
-
-  <!-- Browser camera scanning -->
   <script src="https://unpkg.com/@zxing/browser@0.1.5"></script>
 
   <script>
     const video = document.getElementById("video");
     const statusBox = document.getElementById("status");
+    const torchBtn = document.getElementById("torch");
+    const torchStatus = document.getElementById("torchStatus");
     const startBtn = document.getElementById("start");
     const manual = document.getElementById("manual");
 
-    // Return to the main GitHub Pages app.
     const APP_URL = "./";
 
     let reader = null;
@@ -225,12 +257,27 @@
     let stream = null;
     let busy = false;
     let starting = false;
+    let torchAvailable = false;
+    let torchOn = false;
     let lastCode = "";
     let lastCodeTime = 0;
 
     function setStatus(message, type = "") {
       statusBox.textContent = message;
       statusBox.className = "status" + (type ? " " + type : "");
+    }
+
+    function setTorchStatus(message) {
+      torchStatus.textContent = message;
+    }
+
+    function resetTorchButton() {
+      torchAvailable = false;
+      torchOn = false;
+      torchBtn.disabled = true;
+      torchBtn.classList.remove("active");
+      torchBtn.textContent = "🔦 FLASHLIGHT UNAVAILABLE";
+      setTorchStatus("Flashlight controls are not available yet.");
     }
 
     function stopCamera() {
@@ -254,6 +301,7 @@
 
       stream = null;
       video.srcObject = null;
+      resetTorchButton();
     }
 
     function goBack() {
@@ -285,7 +333,6 @@
       const track = stream.getVideoTracks()[0];
 
       if (!track || typeof track.applyConstraints !== "function") {
-        console.log("Manual focus constraints are unavailable.");
         return;
       }
 
@@ -310,29 +357,89 @@
           advanced.push({ focusMode: "continuous" });
         }
 
-        if (
-          supported.zoom &&
-          capabilities.zoom &&
-          typeof capabilities.zoom.min === "number"
-        ) {
-          // Do not force digital zoom. It can make small barcodes
-          // blurrier on some devices.
-          console.log(
-            "Camera zoom range:",
-            capabilities.zoom.min,
-            capabilities.zoom.max
-          );
-        }
-
-        if (advanced.length > 0) {
+        if (advanced.length) {
           await track.applyConstraints({ advanced });
-          console.log("Continuous autofocus requested.");
-        } else {
-          console.log("Camera manages focus automatically.");
         }
       } catch (error) {
-        // Some phones do not allow web pages to control focus.
         console.warn("Autofocus setting was not applied:", error);
+      }
+    }
+
+    function configureTorch() {
+      resetTorchButton();
+
+      if (!stream) return;
+
+      const track = stream.getVideoTracks()[0];
+
+      if (!track || typeof track.applyConstraints !== "function") {
+        setTorchStatus("This browser does not expose flashlight controls.");
+        return;
+      }
+
+      try {
+        const capabilities =
+          typeof track.getCapabilities === "function"
+            ? track.getCapabilities()
+            : {};
+
+        if (capabilities.torch === true) {
+          torchAvailable = true;
+        } else {
+          setTorchStatus(
+            "Flashlight control is unsupported by this camera or browser."
+          );
+          return;
+        }
+
+        torchBtn.disabled = false;
+        torchBtn.textContent = "🔦 TURN FLASHLIGHT ON";
+        setTorchStatus("Flashlight ready.");
+      } catch (error) {
+        console.warn("Could not check flashlight support:", error);
+        setTorchStatus("Could not detect flashlight support.");
+      }
+    }
+
+    async function toggleTorch() {
+      if (!stream || !torchAvailable || busy) return;
+
+      const track = stream.getVideoTracks()[0];
+      if (!track) return;
+
+      const requestedState = !torchOn;
+
+      torchBtn.disabled = true;
+      setTorchStatus(
+        requestedState
+          ? "Turning flashlight on…"
+          : "Turning flashlight off…"
+      );
+
+      try {
+        await track.applyConstraints({
+          advanced: [{ torch: requestedState }]
+        });
+
+        torchOn = requestedState;
+        torchBtn.classList.toggle("active", torchOn);
+        torchBtn.textContent = torchOn
+          ? "🔦 TURN FLASHLIGHT OFF"
+          : "🔦 TURN FLASHLIGHT ON";
+
+        setTorchStatus(
+          torchOn
+            ? "Flashlight is ON."
+            : "Flashlight is OFF."
+        );
+      } catch (error) {
+        console.error("Flashlight toggle failed:", error);
+
+        setTorchStatus(
+          "Unable to control the flashlight. Your device may not support it."
+        );
+      } finally {
+        torchBtn.disabled = !torchAvailable;
       }
     }
 
@@ -346,8 +453,10 @@
       stopCamera();
 
       try {
-        if (!navigator.mediaDevices ||
-            !navigator.mediaDevices.getUserMedia) {
+        if (
+          !navigator.mediaDevices ||
+          !navigator.mediaDevices.getUserMedia
+        ) {
           throw new Error(
             "Camera access is unavailable. Open this page over HTTPS."
           );
@@ -355,29 +464,27 @@
 
         if (!window.ZXing || !window.ZXingBrowser) {
           throw new Error(
-            "The barcode library did not load. Check your internet connection."
+            "Barcode library failed to load. Check your internet connection."
           );
         }
 
         setStatus("Opening rear camera…");
 
-        const constraints = {
+        stream = await navigator.mediaDevices.getUserMedia({
           audio: false,
           video: {
             facingMode: { ideal: "environment" },
             width: { ideal: 1920 },
             height: { ideal: 1080 }
           }
-        };
+        });
 
-        stream = await navigator.mediaDevices.getUserMedia(constraints);
         video.srcObject = stream;
-
         await video.play();
-        await applyAutofocus();
 
-        // NTMA Gadget IDs contain letters and numbers.
-        // Code 128 supports alphanumeric IDs and hyphens.
+        await applyAutofocus();
+        configureTorch();
+
         const hints = new Map();
 
         hints.set(
@@ -385,7 +492,6 @@
           [ZXing.BarcodeFormat.CODE_128]
         );
 
-        // Ask ZXing to spend more effort finding a difficult barcode.
         hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
 
         reader = new ZXingBrowser.BrowserMultiFormatReader(hints);
@@ -394,7 +500,6 @@
           "Ready to scan. Keep the barcode inside the box and hold steady."
         );
 
-        // Repeatedly decode the live video feed.
         controls = await reader.decodeFromVideoElement(
           video,
           (result, error) => {
@@ -403,7 +508,6 @@
             const text = String(result.getText() || "").trim();
             if (!text) return;
 
-            // Ignore rapid repeat detections of the same code.
             const now = Date.now();
 
             if (text === lastCode && now - lastCodeTime < 1500) {
@@ -439,6 +543,7 @@
     document.getElementById("back")
       .addEventListener("click", goBack);
 
+    torchBtn.addEventListener("click", toggleTorch);
     startBtn.addEventListener("click", startCamera);
 
     document.getElementById("verify")
